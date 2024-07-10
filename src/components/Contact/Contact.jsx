@@ -72,7 +72,7 @@ const Contact = () => {
                 </div>
                 <div className="map-container">
                     <iframe
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d62864.15576602335!2d77.42217152815937!3d10.016053938046772!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b071353e94a7877%3A0x962bf8fd53981722!2sTheni%2C%20Tamil%20Nadu!5e0!3m2!1sen!2sin!4v1720262871861!5m2!1sen!2sin"
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d184552.6741067327!2d-79.54286655715585!3d43.71812280254997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89d4cb90d7c63ba5%3A0x323555502ab4c477!2sToronto%2C%20ON%2C%20Canada!5e0!3m2!1sen!2sin!4v1720616561077!5m2!1sen!2sin"
                         width="100%"
                         height="450"
                         allowFullScreen=""

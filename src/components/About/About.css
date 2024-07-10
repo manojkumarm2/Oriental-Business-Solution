@@ -274,7 +274,7 @@
 
 .testimonial-box-container {
     position: absolute;
-    top: 50%;
+    top: 17%;
     right: 20px; /* Add right padding */
     left: 45px; /* Add left padding */
     transform: translateY(-50%);
