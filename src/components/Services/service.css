@@ -1,0 +1,108 @@
+.service_container {
+    width: 100%;
+    height: 70vh;
+    background: url(../../Assets/hero-services.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.service_bg {
+    background: rgb(2 17 55 / 51%);
+    width: 100%;
+    height: 100%;
+}
+
+.service_head_container {
+    color: #fff;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.service_head_container h1 {
+    font-size: 34px;
+    font-weight: 700;
+    padding-top: 15px;
+}
+
+
+
+@media(min-width:768px) {
+    .service_head_container h1 {
+        font-size: 65px;
+    }
+}
+
+/* OUR TAX SERVICES START*/
+
+.taxservices_bg {
+    width: 100%;
+    background: url(../../Assets/bg-blur1.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: #021137;
+    color: #fff;
+}
+
+.taxservice_detail:hover {
+    transform: translateY(-10px);
+    transition: 1s;
+}
+
+/* OUR TAX SERVICES END */
+
+
+/* ANIMATION KEYFRAMES CSS */
+
+@keyframes service_head {
+    from {
+        transform: translateX(-20px);
+    }
+}
+
+.service_head_container h6 {
+    display: inline-block;
+    animation: 2s service_head linear;
+}
+
+@keyframes service_head_h1 {
+    from {
+        transform: rotateX(180deg);
+    }
+}
+
+.service_head_container h1 {
+    animation: 1s service_head_h1 linear;
+}
+
+/* OUR TAX SERVICES ANIMATION */
+
+/* @keyframes TaxServices_cartRight {
+    from{
+        transform: rotateZ(-90deg);
+    }
+} */
+
+/* .TaxServices_cartRight {
+  
+    animation: 1s TaxServices_cartRight linear ;
+} */
+
+/* .TaxServices_cartRight.animated {
+    opacity: 1;
+} */
+
+/* @keyframes TaxServices_cartLeft{
+    from{
+        transform: rotateZ(-90deg);
+    }
+}
+
+.TaxServices_cartLeft {
+    animation: 1s TaxServices_cartLeft linear;
+} */

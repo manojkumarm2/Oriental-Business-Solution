@@ -1,0 +1,49 @@
+.serviceDetail_container {
+    width: 100%;
+    height: 70vh;
+    background: url(../../Assets/hero-service-details.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.serviceDetail_bg {
+    background: rgb(2 17 55 / 51%);
+    width: 100%;
+    height: 100%;
+}
+
+.serviceDetail_head_container {
+    color: #fff;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.serviceDetail_head_container h1 {
+    font-size: 34px;
+    font-weight: 700;
+    padding-top: 15px;
+}
+
+@media(min-width:768px) {
+    .serviceDetail_head_container h1 {
+        font-size: 65px;
+    }
+}
+
+/* IndividualTax START */
+
+.individula_btn:hover {
+    transform: translateY(-10px);
+    transition: 1s;
+}
+
+@media (min-width:768px) and (max-width:1024px) {
+    .individuval_img_Container {
+        height: 350px;
+    }
+}
