@@ -17,7 +17,11 @@ const Map_form = () => {
             </div>
             
 
-            <div className="contact-form">
+            <div className="contact-form" style={{
+              background:'#fff',
+              boxShadow:'0 4px 8px rgba(0, 0, 0, 0.1)'
+
+              }}>
               <h2>Send A Message</h2>
               <p>
                 Use our contact form below to get started on optimizing your
