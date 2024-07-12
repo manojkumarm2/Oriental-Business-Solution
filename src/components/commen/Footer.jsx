@@ -37,9 +37,9 @@ const Footer = () => {
             id: 3,
             title: "Contact",
             list: [
-                { listTitle: "021 Hollewood Bolwerd,LA", icon: <FaLocationDot /> },
-                { listTitle: "Customer@example.com", icon: <IoMail /> },
-                { listTitle: "(021)345-6789", icon: <FaPhoneAlt /> },
+                { listTitle: "4 Robert Speck Pkwy #1500, Mississauga, ON L4Z 1S1", icon: <FaLocationDot />, path:"#", type: "newwindow", action: "https://www.google.com/maps?q=4+Robert+Speck+Pkwy+%231500,+Mississauga,+ON+L4Z+1S1" },
+                { listTitle: "info@orientalbusinesssolutions.ca", icon: <IoMail />, path:"#", type: "navigate", action: "mailto:info@orientalbusinesssolutions.ca" },
+                { listTitle: "(647) 855-6177", icon: <FaPhoneAlt />, path:"#", type: "navigate", action: "tel:+16478556177" },
             ]
         },
     ]
@@ -121,6 +121,14 @@ const Footer = () => {
                                                 style={{
                                                     textDecoration: "none",
                                                     color: "#fff",
+                                                }}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    if (footerList.type === "navigation") {
+                                                        window.location.href = footerList.action;
+                                                    } else if (footerList.type === "newwindow") {
+                                                        window.open(footerList.action, "_blank", "noopener noreferrer");
+                                                    }
                                                 }}
                                             >
                                                 <div className="col-12 col-md-6 col-lg-2 d-flex m-0 " >

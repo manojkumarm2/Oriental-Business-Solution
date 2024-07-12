@@ -42,13 +42,13 @@ const Contact = () => {
                         <h1>Get In Touch</h1>
                         <p>Connect with us today for expert tax consulting services tailored to your needs. Our dedicated team is here to provide personalized solutions that ensure your financial goals are met with precision and peace of mind.</p>
                         <div className="contact-details">
-                            <img src="https://via.placeholder.com/150" alt="Pajakin logo" className="logo" />
+                            <img src="https://via.placeholder.com/150" alt="oriental business solution logo" className="logo" />
                             <div className="contact-items">
                                 <div className="contact-item">
                                     <h2>Contact</h2>
-                                    <p>021 Hollywood Boulevard, LA, Neque sed pretium</p>
-                                    <p>customer@example.com</p>
-                                    <p>(021) 345-6789</p>
+                                    <p>4 Robert Speck Pkwy #1500, Mississauga, ON L4Z 1S1</p>
+                                    <p>info@orientalbusinesssolutions.ca</p>
+                                    <p>(647) 855-6177</p>
                                 </div>
                                 <div className="social-icons">
                                     <FaSquareFacebook />
@@ -72,7 +72,7 @@ const Contact = () => {
                 </div>
                 <div className="map-container">
                     <iframe
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d184552.6741067327!2d-79.54286655715585!3d43.71812280254997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89d4cb90d7c63ba5%3A0x323555502ab4c477!2sToronto%2C%20ON%2C%20Canada!5e0!3m2!1sen!2sin!4v1720616561077!5m2!1sen!2sin"
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2889.4471835333743!2d-79.63857822240347!3d43.59722987110489!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b473b287e3351%3A0xc4338c578acef23e!2sMississauga%20Tax%20Consulting%20-%20International%20Tax%20-%20US%20Tax%20-%20Corporate%20Tax%20-%20Personal%20Tax!5e0!3m2!1sen!2sca!4v1720753694958!5m2!1sen!2sca"
                         width="100%"
                         height="450"
                         allowFullScreen=""
