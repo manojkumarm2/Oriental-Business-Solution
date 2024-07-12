@@ -1,5 +1,5 @@
 import React from 'react';
-import Faq from '../components/Faq/Faq';
+import Faq from '../components/Faq/Faq.jsx';
 
 const FaqPage = () => {
     return (

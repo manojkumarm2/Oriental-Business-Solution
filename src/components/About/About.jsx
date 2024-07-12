@@ -58,8 +58,8 @@ const About = () => {
 
   return (
     <div>
-      <div className="serviceDetail_container">
-        <div className="serviceDetail_bg">
+      <div className="about_container">
+        <div className="about_bg">
           <Navbar />
           <div className="serviceDetail_head_container">
             <div className="d-flex">

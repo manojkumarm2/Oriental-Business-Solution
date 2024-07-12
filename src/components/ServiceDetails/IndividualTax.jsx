@@ -1,57 +1,83 @@
 import React from 'react';
-// import Img from "../../Assets/service-det-sect.jpg";
-import { MdOutlineKeyboardArrowRight } from "react-icons/md";
+import { SiTicktick } from "react-icons/si";
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+import { useEffect } from 'react';
 
-const IndividualTax = ({title,description,img}) => {
+const IndividualTax = (props) => {
 
-    const button = {
-        width: "180px",
-        padding: "16px 0",
-        color: "black",
-        background: "#FFB341",
-        border: "none",
-        fontWeight: 700
-    }
+    const { title, desc1, desc2, desc3, img, IndividualCard } = props;
 
-    const IndividualCard = [
-        { id: 1, title: "ASSET PROTECTION", para: "Gravida vulputate aliquet tem sitam neque sed pretium non urna sed etid aenean." },
-        { id: 2, title: "TAX PREPARATION", para: "Gravida vulputate aliquet tem sitam neque sed pretium non urna sed etid aenean." },
-        { id: 3, title: "GLOBAL FAMILIES", para: "Gravida vulputate aliquet tem sitam neque sed pretium non urna sed etid aenean." },
-        { id: 4, title: "ESTATE CONSULTING", para: "Gravida vulputate aliquet tem sitam neque sed pretium non urna sed etid aenean." },
-    ]
+    useEffect(() => {
+        AOS.init(({ duration: 2000 }))
+    }, []);
 
     return (
         <>
             <div className="container-lg py-1 py-md-5">
                 <div className="row justify-content-center align-items-center py-5">
-                    <div className="col-12 col-md-5 individuval_img_Container" style={{display:"flex",alignItems:"center"}}>
-                        <img src={img} alt="" width="100%" height="100%" />
+                    <div
+                        data-aos="fade-right"
+                        className="col-12 col-md-5 individuval_img_Container"
+                        style={{
+                            display: "flex",
+                            alignItems: "center"
+                        }}
+                    >
+                        <img
+                            src={img}
+                            alt=""
+                            width="100%"
+                            height="100%"
+                        />
                     </div>
-                    <div className="col-12 col-md-5 mt-4 d-flex flex-column justify-content-center">
+                    <div
+                        data-aos="fade-left"
+                        className="col-12 col-md-5 mt-4 d-flex flex-column justify-content-center"
+                    >
                         <h1 className='pb-3'>{title}</h1>
-                        <p className='py-2' style={{color:"rgba(2, 17, 55, 0.6)"}}>Gravida vulputate aliquet tempor sit.
-                            Neque sed pretium non urna sed etid aenean haretra quam placerat adipiscing penatibus aliquam adipiscing gravida elementum aliquet eget senectus
-                            felis enim diam molestie.
+                        <p
+                            className='py-2'
+                            style={{
+                                color: "rgba(2, 17, 55, 0.6)"
+                            }}
+                        >
+                            {desc1}
                         </p>
-                        <p>“ Neque sed pretium non urna sed etid aenean haretra
-                            quam placerat adipiscing penatibus “
+                        <p>{desc2}
                         </p>
-                        <p className='py-2' style={{color:"rgba(2, 17, 55, 0.6)"}}>Gravida vulputate aliquet tempor sit.
-                            Neque sed pretium non urna sed etid aenean haretra quam placerat adipiscing penatibus aliquam adipiscing gravida elementum aliquet eget senectus
-                            felis enim diam molestie.
+                        <p
+                            className='py-2'
+                            style={{
+                                color: "rgba(2, 17, 55, 0.6)"
+                            }}
+                        >
+                            {desc3}
                         </p>
-                        <button style={button} className='individula_btn'>Get Started Now <MdOutlineKeyboardArrowRight /></button>
                     </div>
                 </div>
             </div>
-            <div className="container-lg py-5">
-                <div className="row">
+            <div className="container-fluid py-5">
+                <div className="row justify-content-center">
                     {
-                        IndividualCard.map((card)=>(
-                            <div className="col-12 col-md-6 col-lg-3" key={card.id}>
-                                <p></p>
-                                <h6>{card.title}</h6>
-                                <p>{card.para}</p>
+                        IndividualCard.map((card) => (
+                            <div
+                                data-aos="zoom-in"
+                                className="col-12 col-md-5 col-xl-2 px-3 py-5 m-3 text-center"
+                                key={card.id}
+                                style={{
+                                    border: "1px solid #4A6EC94D"
+                                }}
+                            >
+                                <SiTicktick className='individual_icon' />
+                                <h6 className='py-3'>{card.title}</h6>
+                                <p
+                                    style={{
+                                        color: "#02113799"
+                                    }}
+                                >
+                                    {card.para}
+                                </p>
                             </div>
                         ))
                     }

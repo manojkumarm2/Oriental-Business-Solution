@@ -22,7 +22,7 @@ const StatCard = ({ icon, target, text }) => {
     const end = parseInt(target);
     if (start === end) return;
 
-    const totalDuration = 2000; // duration of the animation in milliseconds
+    const totalDuration = 2000; 
     const incrementTime = (totalDuration / end) * 0.9;
 
     const timer = setInterval(() => {
@@ -53,7 +53,7 @@ const StatCard = ({ icon, target, text }) => {
 const About = () => {
   return (
     <div>
-      
+
       <div className="about-us d-flex justify-content-around" >
         <div className='about-txt' data-aos="flip-up">
           <p className='heading'>ABOUT US</p>
@@ -65,7 +65,6 @@ const About = () => {
             Over the years, we've built a reputation for excellence and trustworthiness. Our experienced team ensures clients receive top-notch guidance through the complexities of tax regulations and financial planning.
           </p>
           <Link to='' className="read-more">Read More</Link>
-          {/* <a href="#" className="read-more">Read More</a> */}
         </div>
         <div className='about-img'>
           <img src={image} data-aos="fade-left" alt="Tax Services" />

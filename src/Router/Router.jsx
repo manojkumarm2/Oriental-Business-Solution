@@ -7,6 +7,7 @@ import ContactPage from '../Pages/ContactPage';
 import BlogPage from '../Pages/BlogPage';
 import FaqPage from '../Pages/FaqPage';
 import ServiceDetailsPages from '../Pages/ServiceDetailsPages';
+import BlogDetails from "../components/BlogDetails/BlogDetails.jsx";
 
 const Router = () => {
     return (
@@ -20,6 +21,7 @@ const Router = () => {
                     <Route path='/contact' element={<ContactPage />} />
                     <Route path='/blog' element={<BlogPage />} />
                     <Route path='/faq' element={<FaqPage />} />
+                    <Route path='/blogdetails/:id' element={<BlogDetails />} />
                 </Routes>
             </BrowserRouter>
         </>

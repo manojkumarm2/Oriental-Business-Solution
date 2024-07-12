@@ -1,7 +1,7 @@
 .serviceDetail_container {
     width: 100%;
     height: 70vh;
-    background: url(../../Assets/hero-service-details.jpg);
+    background: url(../../Assets/Banner/service.jpg);
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
@@ -42,8 +42,42 @@
     transition: 1s;
 }
 
+.individual_icon{
+    display: inline-block;
+    background: #4A6EC91A;
+    padding: 14px;
+    font-size: 46px;
+    border-radius: 8px;
+    color: #4A6EC9;
+}
+
 @media (min-width:768px) and (max-width:1024px) {
     .individuval_img_Container {
         height: 350px;
+    }
+}
+
+/* professional_Team START */
+
+.professional_Team h1{
+    font-weight: 700;
+    font-size: 24px;
+}
+
+@media (min-width:768px) {
+    .professional_Team h1{
+        font-weight: 700;
+        font-size: 35px;
+    }
+}
+
+@media (min-width:1440px) {
+    .professional_Team h1{
+        font-weight: 700;
+        font-size: 55px;
+    }
+    .professional_Team{
+        width: 65%;
+        margin: auto;
     }
 }

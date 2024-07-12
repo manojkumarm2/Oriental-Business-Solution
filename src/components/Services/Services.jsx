@@ -14,18 +14,46 @@ const Services = () => {
         <>
             <div className="service_container">
                 <div className="service_bg">
-                    <Navbar/>
+                    <Navbar />
                     <div className="service_head_container">
                         <div className="d-flex">
-                            <Link to="/" style={{ textDecoration: "none", color: "#fff" }}>
+                            <Link
+                                to="/"
+                                style={{
+                                    textDecoration: "none",
+                                    color: "#fff"
+                                }}
+                            >
                                 <div className='d-flex'>
-                                    <FaHome style={{ fontSize: "20px", margin: "0 13px" }} />
-                                    <h6 style={{ margin: "0 6px" }}>HOME</h6>
+                                    <FaHome
+                                        style={{
+                                            fontSize: "20px",
+                                            margin: "0 13px"
+                                        }}
+                                    />
+                                    <h6
+                                        style={{
+                                            margin: "0 6px"
+                                        }}
+                                    >
+                                        HOME
+                                    </h6>
                                 </div>
                             </Link>
-                            <Link to="/service" style={{ textDecoration: "none", color: "#fff" }}>
+                            <Link
+                                to="/service"
+                                style={{
+                                    textDecoration: "none",
+                                    color: "#fff"
+                                }}
+                            >
                                 <div className='d-flex'>
-                                    <IoIosArrowForward style={{ fontSize: "18px", margin: "0 13px" }} />
+                                    <IoIosArrowForward
+                                        style={{
+                                            fontSize: "18px",
+                                            margin: "0 13px"
+                                        }}
+                                    />
                                     <h6>OUR SERVICES</h6>
                                 </div>
                             </Link>

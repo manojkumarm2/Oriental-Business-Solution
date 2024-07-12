@@ -1,8 +1,24 @@
+.about_container {
+    width: 100%;
+    height: 100vh;
+    background: url(../../Assets/Banner/about.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.about_bg {
+    background: rgba(2, 17, 55, 0.692);
+    width: 100%;
+    height: 100%;
+}
+
 @keyframes moveUp {
     0% {
         opacity: 0;
         transform: translateY(50px);
     }
+
     100% {
         opacity: 1;
         transform: translateY(0);
@@ -14,6 +30,7 @@
         opacity: 0;
         transform: translateY(-50px);
     }
+
     100% {
         opacity: 1;
         transform: translateY(0);
@@ -52,6 +69,7 @@
         opacity: 0;
         transform: translateY(50px);
     }
+
     100% {
         opacity: 1;
         transform: translateY(0);
@@ -63,25 +81,30 @@
         opacity: 0;
         transform: translateY(-50px);
     }
+
     100% {
         opacity: 1;
         transform: translateY(0);
     }
 }
+
 @keyframes slideInRight {
     0% {
         opacity: 0;
         transform: translateX(100%);
     }
+
     100% {
         opacity: 1;
         transform: translateX(0);
     }
 }
+
 @keyframes moveButtonUp {
     0% {
         transform: translateY(0);
     }
+
     100% {
         transform: translateY(-10px);
     }
@@ -100,6 +123,7 @@
     0% {
         opacity: 0;
     }
+
     100% {
         opacity: 1;
     }
@@ -107,7 +131,8 @@
 
 .about-txt {
     padding: 40px;
-    max-width: 700px; /* Increased width */
+    max-width: 700px;
+    /* Increased width */
     text-align: left;
 }
 
@@ -148,7 +173,7 @@
     display: inline-block;
     background-color: #FFB74D;
     color: #1A1A4B;
-    padding: 15px 30px; 
+    padding: 15px 30px;
     font-size: 18px;
     text-decoration: none;
     font-weight: bold;
@@ -169,7 +194,7 @@
 }
 
 .about-img img {
-    max-width:400px;
+    max-width: 400px;
     height: auto;
     display: block;
 }
@@ -185,7 +210,8 @@
     gap: 8px;
     padding: 0 230px;
     box-sizing: border-box;
-    margin-bottom: 120px; /* Add margin bottom */
+    margin-bottom: 120px;
+    /* Add margin bottom */
 }
 
 .stat-card {
@@ -230,31 +256,38 @@
     max-width: 1200px;
     width: 100%;
     gap: 20px;
-    margin: 0 auto; /* Centers the container */
-    padding: 0 20px; /* Adds space on the left and right sides */
+    margin: 0 auto;
+    /* Centers the container */
+    padding: 0 20px;
+    /* Adds space on the left and right sides */
     border-radius: 8px;
     overflow: hidden;
     position: relative;
-    height: 600px; /* Adjust the height as needed */
+    height: 600px;
+    /* Adjust the height as needed */
 }
 
 .testimonial-content {
     width: 50%;
     padding: 20px;
     text-align: left;
-    z-index: 3; /* Ensure the content is above the background */
+    z-index: 3;
+    /* Ensure the content is above the background */
 }
 
 .testimonial-background {
     width: 62%;
     position: relative;
-    z-index: 1; /* Ensure the background is below content and boxes */
-    height: 100%; /* Make the background take full height of the container */
+    z-index: 1;
+    /* Ensure the background is below content and boxes */
+    height: 100%;
+    /* Make the background take full height of the container */
 }
 
 .testimonial-background img {
     width: 100%;
-    height: 100%; /* Increase the height */
+    height: 100%;
+    /* Increase the height */
     object-fit: cover;
     position: absolute;
     top: 0;
@@ -268,28 +301,34 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5); /* Dark overlay */
+    background: rgba(0, 0, 0, 0.5);
+    /* Dark overlay */
     z-index: 2;
 }
 
 .testimonial-box-container {
     position: absolute;
     top: 17%;
-    right: 20px; /* Add right padding */
-    left: 45px; /* Add left padding */
+    right: 20px;
+    /* Add right padding */
+    left: 45px;
+    /* Add left padding */
     transform: translateY(-50%);
-    width: calc(50% - 20px); /* Adjust width to account for left and right padding */
+    width: calc(50% - 20px);
+    /* Adjust width to account for left and right padding */
     padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-    z-index: 3; /* Ensure the boxes are above the background */
+    z-index: 3;
+    /* Ensure the boxes are above the background */
 }
 
 .testimonial-box {
     background-color: white;
     color: #333;
-    padding: 15px; /* Reduced padding to fit smaller boxes */
+    padding: 15px;
+    /* Reduced padding to fit smaller boxes */
     text-align: left;
     position: relative;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -353,7 +392,7 @@
     right: -10px;
 }
 
-.testimonial-title{
+.testimonial-title {
     margin-top: -3px;
     margin-bottom: 30px;
     color: #1A1A4B;
@@ -364,11 +403,11 @@
     letter-spacing: -1px;
 }
 
-.testimonial-description{
+.testimonial-description {
     margin-top: -15px;
     color: #666666;
     font-size: 16px;
-    text-align:left;
+    text-align: left;
     line-height: 2.0;
 }
 
@@ -396,7 +435,8 @@
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 50px; /* Increased gap for better spacing */
+    gap: 50px;
+    /* Increased gap for better spacing */
 }
 
 .team-member {
@@ -404,27 +444,32 @@
     /* border-radius: 8px; */
     /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
     /* padding: 10px;  */
-    max-width: 400px; /* Increased max-width for larger size */
+    max-width: 400px;
+    /* Increased max-width for larger size */
     text-align: center;
 }
 
 .team-member img {
     width: 100%;
-    height: 300px; /* Set a fixed height for the image */
+    height: 300px;
+    /* Set a fixed height for the image */
     margin-bottom: 20px;
-    object-fit: cover; /* Ensures the image covers the given area */
+    object-fit: cover;
+    /* Ensures the image covers the given area */
 }
 
 .team-member h3 {
     margin: 10px 0 5px 0;
-    font-size: 22px; /* Increased font-size for heading */
+    font-size: 22px;
+    /* Increased font-size for heading */
     color: #333;
 }
 
 .team-member p {
     margin: 0;
     color: #777;
-    font-size: 18px; /* Increased font-size for paragraph */
+    font-size: 18px;
+    /* Increased font-size for paragraph */
 }
 
 
@@ -494,16 +539,20 @@
 @media (max-width: 768px) {
     .testimonial-container {
         flex-direction: column;
-        height: auto; /* Allow the height to adjust based on content */
-        padding: 0 10px; /* Adjust padding for smaller screens */
+        height: auto;
+        /* Allow the height to adjust based on content */
+        padding: 0 10px;
+        /* Adjust padding for smaller screens */
     }
 
-    .testimonial-content, .testimonial-background {
+    .testimonial-content,
+    .testimonial-background {
         width: 100%;
     }
 
     .testimonial-background img {
-        height: 200px; /* Adjust the height for smaller screens */
+        height: 200px;
+        /* Adjust the height for smaller screens */
     }
 
     .testimonial-box-container {
@@ -513,27 +562,33 @@
         right: auto;
         transform: none;
         width: 100%;
-        padding: 10px 0; /* Adjust padding for smaller screens */
+        padding: 10px 0;
+        /* Adjust padding for smaller screens */
         gap: 10px;
     }
 
-    .testimonial-content + .testimonial-box-container {
-        margin-top: 20px; /* Add margin to separate sections */
+    .testimonial-content+.testimonial-box-container {
+        margin-top: 20px;
+        /* Add margin to separate sections */
     }
 
     .testimonial-box {
-        padding: 10px; /* Adjust padding for smaller boxes */
+        padding: 10px;
+        /* Adjust padding for smaller boxes */
     }
 
     .testimonial-title {
-        font-size: 36px; /* Adjust font size for smaller screens */
+        font-size: 36px;
+        /* Adjust font size for smaller screens */
     }
 
     .testimonial-description {
-        font-size: 14px; /* Adjust font size for smaller screens */
+        font-size: 14px;
+        /* Adjust font size for smaller screens */
     }
 
     .author-name {
-        font-size: 1em; /* Adjust font size for smaller screens */
+        font-size: 1em;
+        /* Adjust font size for smaller screens */
     }
 }

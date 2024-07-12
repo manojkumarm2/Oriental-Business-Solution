@@ -1,0 +1,77 @@
+.faq_container {
+    width: 100%;
+    height: 70vh;
+    background: url(../../Assets/Banner/faq.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.faq_bg {
+    background: rgb(2 17 55 / 51%);
+    width: 100%;
+    height: 100%;
+}
+
+.faq_head_container {
+    color: #fff;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.faq_head_container h1 {
+    font-size: 34px;
+    font-weight: 700;
+    padding-top: 15px;
+}
+
+
+
+@media(min-width:768px) {
+    .faq_head_container h1 {
+        font-size: 65px;
+    }
+}
+
+/* FAQ QUESTION CSS START*/
+
+.faq_question h1 {
+    font-weight: 700;
+    font-size: 24px;
+}
+
+.faq_right_left_container img{
+    width: 100%;
+    height: 270px;
+}
+
+@media (min-width:768px) {
+    .faq_question h1 {
+        font-weight: 700;
+        font-size: 35px;
+    }
+    .faq_right_left_container img{
+        width: 100%;
+        height: 350px;
+    }
+}
+
+@media (min-width:1440px) {
+    .faq_question h1 {
+        font-weight: 700;
+        font-size: 55px;
+    }
+
+    .faq_question {
+        width: 52%;
+        margin: auto;
+    }
+    .faq_right_left_container img{
+        width: 100%;
+        height: 420px;
+    }
+}

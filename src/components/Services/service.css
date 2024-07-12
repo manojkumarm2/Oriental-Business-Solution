@@ -1,7 +1,7 @@
 .service_container {
     width: 100%;
     height: 70vh;
-    background: url(../../Assets/hero-services.jpg);
+    background: url(../../Assets/Banner/service.jpg);
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
@@ -79,30 +79,3 @@
 .service_head_container h1 {
     animation: 1s service_head_h1 linear;
 }
-
-/* OUR TAX SERVICES ANIMATION */
-
-/* @keyframes TaxServices_cartRight {
-    from{
-        transform: rotateZ(-90deg);
-    }
-} */
-
-/* .TaxServices_cartRight {
-  
-    animation: 1s TaxServices_cartRight linear ;
-} */
-
-/* .TaxServices_cartRight.animated {
-    opacity: 1;
-} */
-
-/* @keyframes TaxServices_cartLeft{
-    from{
-        transform: rotateZ(-90deg);
-    }
-}
-
-.TaxServices_cartLeft {
-    animation: 1s TaxServices_cartLeft linear;
-} */
