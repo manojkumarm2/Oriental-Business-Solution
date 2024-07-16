@@ -9,10 +9,14 @@ import img1 from '../../Assets/service/taxconsult.jpg';
 import img2 from '../../Assets/service/bookkeeping.jpg';
 import img3 from '../../Assets/service/taxpersonal.jpg';
 import img4 from '../../Assets/service/businessregi.jpg';
-import img5 from '../../Assets/service/auditing.jpg';
-import img6 from '../../Assets/service/payroll.jpg';
-import img7 from '../../Assets/service/planning.jpg';
-import img8 from '../../Assets/service/corporatedocum.jpg';
+
+import img5 from '../../Assets/service/Loans.jpg';
+import img6 from '../../Assets/service/RentalProperty.jpg';
+
+import img7 from '../../Assets/service/auditing.jpg';
+import img8 from '../../Assets/service/payroll.jpg';
+import img9 from '../../Assets/service/planning.jpg';
+import img10 from '../../Assets/service/corporatedocum.jpg';
 import Footer from '../commen/Footer.jsx';
 import Navbar from "../commen/Navbar.jsx";
 
@@ -75,13 +79,44 @@ const ServiceDetails = () => {
                 { id: 4, title: "Ongoing Support", para: "Providing ongoing support and guidance to maintain compliance as your business grows." },
             ]
         },
+
         {
             id: 5,
+            title: "Loans & Mortgages",
+            desc1: "Navigating the complexities of loans and mortgages can be challenging. Our experienced team provides comprehensive guidance to help you secure the best financing options tailored to your needs. Whether you're purchasing your first home, refinancing an existing mortgage, or exploring investment opportunities, we offer expert advice to ensure a smooth and successful process. Our personalized approach ensures that every client receives the attention and expertise required to make informed decisions and achieve their financial goals.",
+            desc2: "Expert guidance in loans and mortgages ensures you make informed and beneficial financial decisions.",
+            desc3: "We cover a wide range of services within the loans and mortgages sector, ensuring you have access to the resources and support necessary for every step of your financial journey. From understanding loan terms to finding competitive rates, our consultants are here to assist you in making the most informed choices. Trust us to provide clear, concise, and actionable advice that aligns with your unique financial situation and objectives.",
+            img: img5,
+            IndividualCard: [
+                { id: 1, title: "Mortgage Pre-Approval", para: "Get pre-approved to understand your budget and increase your bargaining power." },
+                { id: 2, title: "Refinancing Options", para: "Explore refinancing opportunities to lower your interest rate and monthly payments." },
+                { id: 3, title: "Investment Property Loans", para: "Receive expert advice on financing for investment properties to maximize your returns." },
+                { id: 4, title: "Debt Consolidation Loans", para: "Simplify your finances by consolidating multiple debts into a single, manageable loan." },
+            ]
+        },
+
+        {
+            id: 6,
+            title: "Rental Property HST Rebates",
+            desc1: "Owning rental property in Canada can be a lucrative investment, but it's essential to understand the tax implications and opportunities available, such as the HST (Harmonized Sales Tax) rebates. Our expert tax consultants are here to help you navigate the complexities of HST rebates, ensuring you maximize your returns and comply with all regulatory requirements. Whether you're a seasoned investor or new to the rental property market, we offer personalized services tailored to your unique needs.",
+            desc2: "Maximize your rental property's potential with expert HST rebate assistance.",
+            desc3: "At our firm, we specialize in helping clients understand and claim HST rebates on rental properties. From initial property purchase to ongoing management, our comprehensive services cover every aspect of your tax obligations. Let us simplify the process for you and secure the rebates you're entitled to, allowing you to focus on growing your investment portfolio with confidence.",
+            img: img6,
+            IndividualCard: [
+                { id: 1, title: "Eligibility Assessment", para: "Determine if your rental property qualifies for HST rebates based on current regulations and property use." },
+                { id: 2, title: "Application Preparation", para: "Complete and accurate preparation of HST rebate applications to ensure timely and successful submissions." },
+                { id: 3, title: "Documentation Review", para: "Thorough review of all necessary documentation to support your HST rebate claim, minimizing the risk of audit." },
+                { id: 4, title: "Ongoing Support", para: "Continual guidance and support for future rebate claims and compliance with changing tax laws." },
+            ]
+        },
+
+        {
+            id: 7,
             title: "Auditing",
             desc1: 'Facing a tax audit can be stressful. Our team of experienced professionals can help navigate you through the process with confidence. ',
             desc2: "We offer a comprehensive range of audit services to ensure your financial records are accurate and compliant with tax regulations.",
             desc3: "",
-            img: img5,
+            img: img7,
             IndividualCard: [
                 { id: 1, title: "Audit Representation", para: "We'll act as your liaison with tax authorities, protecting your rights." },
                 { id: 2, title: "Documentation Support", para: "We assist in gathering and organizing necessary documents." },
@@ -90,12 +125,12 @@ const ServiceDetails = () => {
             ]
         },
         {
-            id: 6,
+            id: 8,
             title: "payroll management",
             desc1: 'Managing payroll can be complex and time-consuming, but our expert team is here to simplify the process for you. At [Your Company Name], we provide comprehensive payroll management services tailored to meet the unique needs of your business. ',
             desc2: " Our solutions ensure accuracy, compliance, and efficiency, allowing you to focus on your core business activities. ",
             desc3: "From calculating wages and taxes to managing employee benefits, we handle all aspects of payroll with precision and professionalism.",
-            img: img6,
+            img: img8,
             IndividualCard: [
                 { id: 1, title: "Payroll Processing", para: "Accurate and timely calculation of wages, deductions, and taxes." },
                 { id: 2, title: "Compliance Management", para: "Ensuring adherence to all federal, state, and local payroll regulations." },
@@ -104,12 +139,12 @@ const ServiceDetails = () => {
             ]
         },
         {
-            id: 7,
+            id: 9,
             title: "Tax Planning and Reporting",
             desc1: "Navigating the complexities of tax planning and reporting can be daunting. At [Your Company Name], we specialize in providing comprehensive solutions tailored to your unique financial situation. Our expert team is dedicated to helping you minimize tax liabilities and ensure compliance with all regulatory requirements. ",
             desc2: "By leveraging our extensive knowledge and cutting-edge tools, we empower you to make informed decisions that enhance your financial well-being.",
             desc3: "Our services are designed to streamline the tax planning and reporting process, offering you peace of mind and allowing you to focus on your core business activities. We pride ourselves on our proactive approach, identifying opportunities for tax savings and ensuring that all reporting is accurate and timely. Trust us to be your partner in achieving financial success and security.",
-            img: img7,
+            img: img9,
             IndividualCard: [
                 { id: 1, title: "Strategic Tax Planning", para: "Develop customized strategies to minimize tax liabilities and maximize financial growth." },
                 { id: 2, title: "Comprehensive Tax Reporting", para: "Ensure accurate and timely tax filings, meeting all regulatory requirements." },
@@ -118,12 +153,12 @@ const ServiceDetails = () => {
             ]
         },
         {
-            id: 8,
-            title: 'Legally Required  ',
+            id: 10,
+            title: 'Legally Required',
             desc1: "Ensuring your business complies with all legal documentation requirements is crucial for maintaining its operational integrity and avoiding potential penalties. Our expert tax consultants provide comprehensive support in preparing, managing, and updating all necessary corporate documents to keep your business compliant and running smoothly. ",
             desc2: " From incorporation to ongoing compliance, we handle all aspects of corporate documentation, giving you peace of mind to focus on your core business activities.",
             desc3: "Our team specializes in various essential corporate documents, each playing a vital role in your business's legal framework. Whether you are starting a new venture or managing an established enterprise, we guide you through every step to ensure all documentation is accurate, timely, and legally sound. Trust us to handle your documentation needs, so you can concentrate on what you do best—growing your business.",
-            img: img8,
+            img: img10,
             IndividualCard: [
                 { id: 1, title: "Articles of Incorporation", para: "Defines the establishment of your corporation, outlining its purpose, structure, and operational guidelines." },
                 { id: 2, title: "Bylaws", para: "Detailed rules governing the internal management of your company, including roles, responsibilities, and procedures." },

@@ -8,6 +8,7 @@ import BlogPage from '../Pages/BlogPage';
 import FaqPage from '../Pages/FaqPage';
 import ServiceDetailsPages from '../Pages/ServiceDetailsPages';
 import BlogDetails from "../components/BlogDetails/BlogDetails.jsx";
+import FtcfPage from '../Pages/FtcfPage.jsx';
 
 const Router = () => {
     return (
@@ -19,6 +20,7 @@ const Router = () => {
                     <Route path='/service' element={<ServicesPage />} />
                     <Route path='/servicedetails/:id' element={<ServiceDetailsPages />} />
                     <Route path='/contact' element={<ContactPage />} />
+                    <Route path='/ftcf' element={<FtcfPage />} />
                     <Route path='/blog' element={<BlogPage />} />
                     <Route path='/faq' element={<FaqPage />} />
                     <Route path='/blogdetails/:id' element={<BlogDetails />} />

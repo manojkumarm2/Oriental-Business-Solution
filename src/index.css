@@ -63,9 +63,17 @@
 .footer_wrap{
   text-wrap: wrap;
 }
-
-/* @media (min-width:768px) {
-  .footer_wrap{
+.footer_nowrap{
     text-wrap: nowrap;
+}
+.footer_nowrapp{
+  text-wrap: nowrap;
+}
+
+
+
+@media (max-width:1439px) {
+  .footer_nowrapp{
+    text-wrap: wrap;
   }
-} */
+}

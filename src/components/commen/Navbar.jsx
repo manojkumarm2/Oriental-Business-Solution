@@ -26,11 +26,17 @@ const Navbar = () => {
         },
         {
             id: 5,
+            title: "FTCF",
+            path: "/ftcf"
+        },
+        
+        {
+            id: 6,
             title: "Blog",
             path: "/blog"
         },
         {
-            id: 6,
+            id: 7,
             title: "FAQ",
             path: "/faq"
         },

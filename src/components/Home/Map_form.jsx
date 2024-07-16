@@ -3,7 +3,6 @@ import { useState } from "react";
 import emailjs from "emailjs-com";
 
 const Map_form = () => {
-
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -51,21 +50,20 @@ const Map_form = () => {
               className="home_map"
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2889.4471835333743!2d-79.63857822240347!3d43.59722987110489!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b473b287e3351%3A0xc4338c578acef23e!2sMississauga%20Tax%20Consulting%20-%20International%20Tax%20-%20US%20Tax%20-%20Corporate%20Tax%20-%20Personal%20Tax!5e0!3m2!1sen!2sca!4v1720753694958!5m2!1sen!2sca"
               style={{
-                border: '0',
-                width: '100%',
+                border: "0",
+                width: "100%",
               }}
               allowfullscreen=""
               loading="lazy"
               referrerpolicy="no-referrer-when-downgrade"
-            >
-            </iframe>
+            ></iframe>
           </div>
           <div
             className="col-12 col-md-6 mt-3 p-4 home_contact_form"
             style={{
-              background: '#fff',
+              background: "#fff",
               color: "black",
-              boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+              boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
             }}
           >
             <h2>Send A Message</h2>
@@ -82,11 +80,11 @@ const Map_form = () => {
                 value={formData.name}
                 onChange={handleChange}
                 style={{
-              background: '#fff',
-              color: "black",
-              boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-              border:"none"
-            }}
+                  background: "#fff",
+                  color: "black",
+                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                  border: "none",
+                }}
               />
               <input
                 type="email"
@@ -96,12 +94,32 @@ const Map_form = () => {
                 value={formData.email}
                 onChange={handleChange}
                 style={{
-              background: '#fff',
-              color: "black",
-              boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-              border:"none"
-            }}
+                  background: "#fff",
+                  color: "black",
+                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                  border: "none",
+                }}
               />
+
+              <select class="form-select " style={{
+                background: "#fff",
+                color: "black",
+                boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                border: "none",
+              }} aria-label="Default select example">
+                <option selected>Open this select menu</option>
+                <option value="1">Tax Consulting</option>
+                <option value="2">Bookkeeping Services</option>
+                <option value="3">Taxes</option>
+                <option value="4">Business Registration</option>
+                <option value="5">Loans & Mortgages</option>
+                <option value="6">Rental Property HST Rebates</option>
+                <option value="7">Auditing</option>
+                <option value="8">payroll management</option>
+                <option value="9">Tax Planning and Reporting</option>
+                <option value="10">Legally Required</option>
+              </select>
+
               <textarea
                 name="message"
                 placeholder="Message"
@@ -109,11 +127,11 @@ const Map_form = () => {
                 value={formData.message}
                 onChange={handleChange}
                 style={{
-              background: '#fff',
-              color: "black",
-              boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-              border:"none"
-            }}
+                  background: "#fff",
+                  color: "black",
+                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                  border: "none",
+                }}
               ></textarea>
               <button type="submit">Send Message</button>
             </form>
