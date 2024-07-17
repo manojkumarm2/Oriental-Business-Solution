@@ -1,11 +1,13 @@
 import React from "react";
 import { useState } from "react";
 import emailjs from "emailjs-com";
+import { toast } from "react-toastify";
 
 const Map_form = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    interest: "",
     message: "",
   });
 
@@ -20,25 +22,30 @@ const Map_form = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    emailjs
-      .sendForm(
-        "service_cvl7sc5",
-        "template_os2q2lp",
-        e.target,
-        "gccmS9ZmpmZjxvX7Z"
-      )
-      .then(
-        (result) => {
-          console.log(result.text);
-          alert("Message sent successfully!");
-        },
-        (error) => {
-          console.log(error.text);
-          alert("Failed to send the message, please try again.");
-        }
-      );
+    const { name, email, interest, message } = formData;
 
-    e.target.reset();
+    if (name && email && interest && message) {
+      emailjs
+        .sendForm(
+          "service_cvl7sc5",
+          "template_os2q2lp",
+          e.target,
+          "gccmS9ZmpmZjxvX7Z"
+        )
+        .then(
+          (result) => {
+            console.log(result.text);
+            toast.success("Message sent successfully!");
+            setFormData({ name: "", email: "", service: "", message: "" }); // Reset form data
+          },
+          (error) => {
+            console.log(error.text);
+            toast.error("Failed to send the message, please try again.");
+          }
+        );
+    } else {
+      toast.warn("Please fill in all fields.");
+    }
   };
 
   return (
@@ -72,69 +79,53 @@ const Map_form = () => {
               financial strategy with confidence.
             </p>
             <form onSubmit={handleSubmit}>
-              <input
-                type="text"
-                name="name"
-                placeholder="Name"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                style={{
-                  background: "#fff",
-                  color: "black",
-                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                  border: "none",
-                }}
-              />
-              <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                style={{
-                  background: "#fff",
-                  color: "black",
-                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                  border: "none",
-                }}
-              />
-
-              <select class="form-select " style={{
-                background: "#fff",
-                color: "black",
-                boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                border: "none",
-              }} aria-label="Default select example">
-                <option selected>Open this select menu</option>
-                <option value="1">Tax Consulting</option>
-                <option value="2">Bookkeeping Services</option>
-                <option value="3">Taxes</option>
-                <option value="4">Business Registration</option>
-                <option value="5">Loans & Mortgages</option>
-                <option value="6">Rental Property HST Rebates</option>
-                <option value="7">Auditing</option>
-                <option value="8">payroll management</option>
-                <option value="9">Tax Planning and Reporting</option>
-                <option value="10">Legally Required</option>
-              </select>
-
-              <textarea
-                name="message"
-                placeholder="Message"
-                required
-                value={formData.message}
-                onChange={handleChange}
-                style={{
-                  background: "#fff",
-                  color: "black",
-                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                  border: "none",
-                }}
-              ></textarea>
-              <button type="submit">Send Message</button>
-            </form>
+            <input
+              type="text"
+              name="name"
+              placeholder="Name"
+              required
+              value={formData.name}
+              onChange={handleChange}
+            />
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+            />
+            <select
+              className="form-select"
+              style={{border: '1px solid #767676'}}
+              name="interest"
+              required
+              value={formData.interest}
+              onChange={handleChange}
+            >
+              <option value="" disabled>
+                Select a service
+              </option>
+              <option value="Tax Consulting">Tax Consulting</option>
+              <option value="Bookkeeping Services">Bookkeeping Services</option>
+              <option value="Taxes">Taxes</option>
+              <option value="Business Registration">Business Registration</option>
+              <option value="Loans & Mortgages">Loans & Mortgages</option>
+              <option value="Rental Property HST Rebates">Rental Property HST Rebates</option>
+              <option value="Auditing">Auditing</option>
+              <option value="Payroll Management">Payroll Management</option>
+              <option value="Tax Planning and Reporting">Tax Planning and Reporting</option>
+              <option value="Legally Required">Legally Required</option>
+            </select>
+            <textarea
+              name="message"
+              placeholder="Message"
+              required
+              value={formData.message}
+              onChange={handleChange}
+            ></textarea>
+            <button type="submit">Send Message</button>
+          </form>
           </div>
         </div>
       </div>

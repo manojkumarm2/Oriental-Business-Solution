@@ -33,6 +33,11 @@
 
 /* FOOTER CSS START  */
 
+/* .quick{
+  margin-left: -150px;
+} */
+
+
 .footer_icon {
   text-decoration: "none";
   color: #fff;
@@ -61,7 +66,7 @@
 }
 
 .footer_wrap{
-  text-wrap: wrap;
+  text-wrap: nowrap;
 }
 .footer_nowrap{
     text-wrap: nowrap;
@@ -72,8 +77,8 @@
 
 
 
-@media (max-width:1439px) {
+/* @media (max-width:1439px) {
   .footer_nowrapp{
     text-wrap: wrap;
   }
-}
+} */

@@ -60,7 +60,8 @@ const Ftcf = () => {
         </div>
       </div>
 
-      <div className=" py-5 form-container container" style={{ width: "60%" }}>
+      <div className=" py-5 form-container container d-flex flex-column" style={{ width: "60%" }}>
+        {/* <h4 className="text-align-center">FREE TAX CLINIC FORM</h4> */}
         <form className=" d-flex flex-column justify-content-center" style={{ fontSize:'20px' }}>
           <div className="mb-3">
             <label for="exampleInputEmail1" className="form-label">

@@ -1,138 +1,111 @@
-import React from 'react';
+
+import React from "react";
 import { IoMail } from "react-icons/io5";
 import { FaLocationDot } from "react-icons/fa6";
 import { FaPhoneAlt } from "react-icons/fa";
-import { commenIcon } from '../../data/CommenIcon.jsx';
-import CopyRights from './CopyRights';
-import { Link } from 'react-router-dom';
+import { commenIcon } from "../../data/CommenIcon.jsx";
+import CopyRights from "./CopyRights";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
-
-    const footerMenu = [
-        {
-            id: 1,
-            title: "Quick Menu",
-            list: [
-                { listTitle: "Home", path: "/" },
-                { listTitle: "About", path: "/about" },
-                { listTitle: "Services", path: "/service" },
-                { listTitle: "Contact", path: "/contact" },
-                { listTitle: "Blog", path: "/blog" },
-                { listTitle: "FAQ", path: "/faq" },
-            ]
-        },
-        {
-            id: 2,
-            title: "Services",
-            list: [
-                { listTitle: "Corparate Services", path: "/" },
-                { listTitle: "Personal Services", path: "/" },
-                { listTitle: "Legalisation", path: "/" },
-                { listTitle: "Mobile Notary", path: "/" },
-                { listTitle: "Transalation", path: "/" },
-                { listTitle: "Authentication", path: "/" },
-            ]
-        },
-        {
-            id: 3,
-            title: "Contact",
-            list: [
-                { listTitle0: "4 Robert Speck Pkwy #1500, Mississauga, ON L4Z 1S1", icon: <FaLocationDot />, path: "#", type: "newwindow", action: "https://www.google.com/maps?q=4+Robert+Speck+Pkwy+%231500,+Mississauga,+ON+L4Z+1S1" },
-                { listTitle: "info@orientalbusinesssolutions.ca", icon: <IoMail />, path: "#", type: "navigate", action: "mailto:info@orientalbusinesssolutions.ca" },
-                { listTitle1: "(647) 855-6177", icon: <FaPhoneAlt />, path: "#", type: "navigate", action: "tel:+16478556177" },
-            ]
-        },
-    ]
-
-    return (
-        <>
-            <div
-                className='py-5'
-                style={{
-                    background: "rgb(74, 110, 201)",
-                    color: "#fff"
-                }}
-            >
-                <div className="container " style={{marginLeft:'0'}} >
-                    {/* <div className="row m-0 py-4 mb-4">
-                        <div className="col-md-6">
-                            <h1 data-aos="slide-right">Join Our Newsletter</h1>
-                            <p data-aos="slide-right">
-                                Aenean haretra quam placerat adipiscing penatibus aliquam adipiscing
-                                gravida elementum aliquet eget senectus felis enim diam molestie.
-                            </p>
-                        </div>
-                        <div className="col-md-6">
-                            <input
-                                style={{ outline: "none" }}
-                                className='w-100 py-3 px-3'
-                                type="email"
-                                placeholder='Enter Your Email Address'
-                            />
-                            <button
-                                className='d-block w-100 my-3 py-3 px-3 fw-bold border-0'
-                                style={{ background: "#fcb44c", color: "#021137" }}>Subscribe Now <IoMail />
-                            </button>
-                        </div>
-                    </div> */}
-                    <div className="row m-0 pt-5"
-                    // style={{ borderTop: "1px solid rgb(88 117 192 / 59%)" }}
-                    >
-                        <div className="col-12 col-md-6 col-lg-5 pt-3">
-                            <p className='py-4'>
-                                Expert tax consultants offering personalized strategies for individuals and businesses,
-                                ensuring compliance and maximizing financial efficiency.
-                            </p>
-                            <div className="d-flex footer_icon_container ">
-                                {
-                                    commenIcon.map((icon) => (
-                                        <Link
-                                            key={icon.id}
-                                            className='footer_icon'
-                                        >
-                                            {icon.icon}
-                                        </Link>
-                                    ))
-                                }
-                            </div>
-                        </div>
-                        {
-                            footerMenu.map((footerMenu, index) => (
-                                <div className="col-12 col-md-6 col-lg-2 pt-3 footerMenu_Container"
-                                    key={footerMenu.id}
-                                >
-                                    <h4
-                                        className='pb-3 text-nowrap'
-                                        style={{
-                                            paddingLeft: index === 0 || index === 1 ? "12px" : ""
-                                        }}
-                                    >
-                                        {footerMenu.title}
-                                    </h4>
-                                    {
-                                        footerMenu.list.map((footerList) => (
-                                            <Link
-                                                to={footerList.path}
-                                                key={footerList.listTitle}
-                                            >
-                                                <div className="col-12 col-md-6 col-lg-2 d-flex m-0" >
-                                                    <p className='d-block pe-3' >{footerList.icon}</p>
-                                                    <p className=' footer_nowrapp' >{footerList.listTitle0}</p>
-                                                    <p className=' footer_wrap' >{footerList.listTitle}</p>
-                                                    <p className=' footer_nowrap' >{footerList.listTitle1}</p>
-                                                </div>
-                                            </Link>
-                                        ))
-                                    }
-                                </div>
-                            ))
-                        }
-                    </div>
-                </div>
+  return (
+    <>
+      <div
+        className="py-5 "
+        style={{
+          background: "rgb(74, 110, 201)",
+          color: "#fff",
+        }}
+      >
+        <div
+          className="container "
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+          }}
+        >
+          <div className="row m-0 pt-5">
+            <div className="col-12 col-md-6 col-lg-5 pt-0">
+              <p className="py-4">
+                Expert tax consultants offering personalized strategies <br />{" "}
+                for individuals and businesses, ensuring compliance and <br />{" "}
+                maximizing financial efficiency.
+              </p>
+              <div className="d-flex footer_icon_container">
+                {commenIcon.map((icon) => (
+                  <Link key={icon.id} className="footer_icon">
+                    {icon.icon}
+                  </Link>
+                ))}
+              </div>
             </div>
-            <CopyRights />
-        </>
-    )
-}
+
+            <div className="col-12 col-md-6 col-lg-2 pt-3 footerMenu_Container d-flex flex-column align-items-start gap-2">
+              <h4 className="pb-3 text-nowrap">Quick Menu</h4>
+              <Link to="/">Home</Link>
+              <Link to="/about">About</Link>
+              <Link to="/service">Services</Link>
+              <Link to="/contact">Contact</Link>
+              <Link to="/blog">Blog</Link>
+              <Link to="/faq">FAQ</Link>
+            </div>
+
+            <div className="col-12 col-md-6 col-lg-2 pt-3 footerMenu_Container d-flex flex-column align-items-start gap-2">
+              <h4 className="pb-3 text-nowrap " style={{ paddingLeft: "12px" }}>
+                Services
+              </h4>
+              <Link to="/">Tax Consulting</Link>
+                <Link to="/">Bookkeeping</Link>
+                <Link to="/">Taxes</Link>
+                <Link to="/">Business</Link>
+                <Link to="/">Loans & Mortgages</Link>
+                <Link to="/">Rental Property</Link>
+                <Link to="/">Auditing</Link>
+                <Link to="/">Payroll</Link>
+                <Link to="/">Planning</Link>
+                <Link to="/">Legally Required</Link>
+            </div>
+
+            <div className="col-12 col-md-6 col-lg-2 pt-3 footerMenu_Container">
+              <h4 className="pb-3 text-nowrap">Contact</h4>
+              <div className="d-flex m-0">
+                <p className="d-block pe-3">
+                  <FaLocationDot />
+                </p>
+                <p className="footer_nowrapp">
+                  <Link
+                    to="https://www.google.com/maps?q=4+Robert+Speck+Pkwy+%231500,+Mississauga,+ON+L4Z+1S1"
+                    target="_blank"
+                  >
+                    4 Robert Speck Pkwy #1500, Mississauga, ON L4Z 1S1
+                  </Link>
+                </p>
+              </div>
+              <div className="d-flex m-0">
+                <p className="d-block pe-3">
+                  <IoMail />
+                </p>
+                <p className="footer_wrap">
+                  <Link to="mailto:info@orientalbusinesssolutions.ca">
+                    info@orientalbusinesssolutions.ca
+                  </Link>
+                </p>
+              </div>
+              <div className="d-flex m-0">
+                <p className="d-block pe-3">
+                  <FaPhoneAlt />
+                </p>
+                <p className="footer_nowrap">
+                  <Link to="tel:+16478556177">(647) 855-6177</Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <CopyRights />
+    </>
+  );
+};
 
 export default Footer;
