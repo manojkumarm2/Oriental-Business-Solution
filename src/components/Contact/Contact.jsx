@@ -12,6 +12,7 @@ import { useState } from "react";
 import emailjs from "emailjs-com";
 import Logo from "../../Assets/contactlogo.jpg";
 import {toast } from "react-toastify";
+import { AppConfig } from '../../config/app.config'
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -37,10 +38,10 @@ const Contact = () => {
     if (name && email && interest && message) {
       emailjs
         .sendForm(
-          "service_cvl7sc5",
-          "template_os2q2lp",
-          e.target,
-          "gccmS9ZmpmZjxvX7Z"
+            AppConfig.email.service,
+            AppConfig.email.contact_template,
+            e.target,
+            AppConfig.email.publicKey
         )
         .then(
           (result) => {

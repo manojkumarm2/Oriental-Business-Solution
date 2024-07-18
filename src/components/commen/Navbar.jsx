@@ -25,12 +25,6 @@ const Navbar = () => {
             path: "/contact"
         },
         {
-            id: 5,
-            title: "FTCF",
-            path: "/ftcf"
-        },
-        
-        {
             id: 6,
             title: "Blog",
             path: "/blog"

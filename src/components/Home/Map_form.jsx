@@ -2,12 +2,13 @@ import React from "react";
 import { useState } from "react";
 import emailjs from "emailjs-com";
 import { toast } from "react-toastify";
+import { AppConfig } from '../../config/app.config'
 
 const Map_form = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    interest: "",
+    service: "",
     message: "",
   });
 
@@ -22,15 +23,15 @@ const Map_form = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const { name, email, interest, message } = formData;
+    const { name, email, service, message } = formData;
 
-    if (name && email && interest && message) {
+    if (name && email && service && message) {
       emailjs
         .sendForm(
-          "service_cvl7sc5",
-          "template_os2q2lp",
+          AppConfig.email.service,
+          AppConfig.email.contact_template,
           e.target,
-          "gccmS9ZmpmZjxvX7Z"
+          AppConfig.email.publicKey
         )
         .then(
           (result) => {
@@ -98,9 +99,9 @@ const Map_form = () => {
             <select
               className="form-select"
               style={{border: '1px solid #767676'}}
-              name="interest"
+              name="service"
               required
-              value={formData.interest}
+              value={formData.service}
               onChange={handleChange}
             >
               <option value="" disabled>

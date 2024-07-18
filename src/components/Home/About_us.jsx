@@ -64,7 +64,7 @@ const About = () => {
           <p className='description'>
             Over the years, we've built a reputation for excellence and trustworthiness. Our experienced team ensures clients receive top-notch guidance through the complexities of tax regulations and financial planning.
           </p>
-          <Link to='' className="read-more">Read More</Link>
+          <Link to='/about' className="read-more">Read More</Link>
         </div>
         <div className='about-img'>
           <img src={image} data-aos="fade-left" alt="Tax Services" />
@@ -74,7 +74,7 @@ const About = () => {
         <StatCard icon={icon1} target="172" text="Tax Services" />
         <StatCard icon={icon2} target="97" text="Recommended" />
         <StatCard icon={icon3} target="100" text="Satisfaction" />
-        <StatCard icon={icon4} target="46" text="International Awards" />
+        {/* <StatCard icon={icon4} target="46" text="International Awards" /> */}
       </div>
     </div>
   );
