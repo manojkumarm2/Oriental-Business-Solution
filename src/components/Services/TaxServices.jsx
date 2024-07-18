@@ -31,7 +31,7 @@ const TaxServices = () => {
         { id: 7, title: "Auditing", img: img7, desc: "Thorough examinations of your financial statements to ensure accuracy and compliance...", path: "", detail: "View Detail" },
         { id: 8, title: "Payroll ", img: img8, desc: "Efficient and reliable payroll processing and compliance services...", path: "", detail: "View Detail" },
         { id: 9, title: "Planning", img: img9, desc: "Strategic financial planning and detailed reporting for informed decision-making...", path: "", detail: "View Detail" },
-        { id: 10, title: "Legally Required", img: img10, desc: "Expert preparation and management of essential corporate documents to meet legal requirements...", path: "", detail: "View Detail" },
+        { id: 10, title: "Legally Required", img: img10, desc: "Expert preparation and management of essential corporate documents to...", path: "", detail: "View Detail" },
     ];
 
     // const bottomSectionRef = useRef(null);
