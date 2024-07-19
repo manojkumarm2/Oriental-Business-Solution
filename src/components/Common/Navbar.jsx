@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import Logo from '../../Assets/obs.png'
+import Logo from '../../Assets/obs.png';
+import { useRef } from 'react';
 
 const Navbar = () => {
 
@@ -34,7 +35,15 @@ const Navbar = () => {
             title: "FAQ",
             path: "/faq"
         },
-    ]
+    ];
+
+    const navbarCollapseRef = useRef(null);
+
+    const handleLinkClick = () => {
+        if (navbarCollapseRef.current.classList.contains('show')) {
+            navbarCollapseRef.current.classList.remove('show');
+        }
+    };
 
     return (
         <>
@@ -91,6 +100,7 @@ const Navbar = () => {
                         <div
                             className="collapse navbar-collapse justify-content-center nav_container "
                             id="navbarNav"
+                            ref={navbarCollapseRef}
                         >
                             <ul className="navbar-nav gap-5 p-4" >
                                 {
@@ -103,6 +113,7 @@ const Navbar = () => {
                                             <Link
                                                 className="nav-link"
                                                 to={navbar.path}
+                                                onClick={handleLinkClick}
                                             >
                                                 {navbar.title}
                                             </Link>

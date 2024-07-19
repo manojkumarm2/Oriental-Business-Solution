@@ -367,7 +367,7 @@ const ServiceDetails = () => {
         <div className="serviceDetail_bg">
           <Navbar />
           <div className="serviceDetail_head_container">
-            <div className="d-flex">
+            <div className="d-flex flex-wrap justify-content-center">
               <Link
                 to="/"
                 style={{
@@ -426,7 +426,7 @@ const ServiceDetails = () => {
                 </div>
               </Link>
             </div>
-            <h1>{card.title}</h1>
+            <h1 className="text-center">{card.title}</h1>
           </div>
         </div>
       </div>

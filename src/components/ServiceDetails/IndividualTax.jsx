@@ -31,7 +31,28 @@ const IndividualTax = (props) => {
                             height="100%"
                         />
                     </div>
-                    <div
+                    <div className="col-12 col-md-5 mt-4">
+                        <h1 className='pb-3'>{title}</h1>
+                        <p
+                            className='py-2'
+                            style={{
+                                color: "rgba(2, 17, 55, 0.6)"
+                            }}
+                        >
+                            {desc1}
+                        </p>
+                        <p>{desc2}
+                        </p>
+                        <p
+                            className='py-2'
+                            style={{
+                                color: "rgba(2, 17, 55, 0.6)"
+                            }}
+                        >
+                            {desc3}
+                        </p>
+                    </div>
+                    {/* <div
                         data-aos="fade-left"
                         className="col-12 col-md-5 mt-4 d-flex flex-column justify-content-center"
                     >
@@ -54,7 +75,7 @@ const IndividualTax = (props) => {
                         >
                             {desc3}
                         </p>
-                    </div>
+                    </div> */}
                 </div>
             </div>
             <div className="container-fluid py-5">
