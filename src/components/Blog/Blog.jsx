@@ -3,11 +3,11 @@ import { useEffect } from 'react';
 import { FaHome } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
 import { Link } from "react-router-dom";
-import Navbar from "../commen/Navbar.jsx";
+import Navbar from "../Common/Navbar.jsx";
 import "../Blog/Blog.css";
 // import Blog1 from '../../Assets/blog/blog-1.jpg'
 import BlogPost from "./BlogPost.jsx";
-import Footer from '../commen/Footer.jsx'
+import Footer from '../Common/Footer.jsx'
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 

@@ -4,8 +4,8 @@ import { FaHome } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
 import { Link } from 'react-router-dom';
 import TaxServices from './TaxServices';
-import Footer from '../commen/Footer';
-import Navbar from '../commen/Navbar';
+import Footer from '../Common/Footer';
+import Navbar from '../Common/Navbar';
 // import TaxServices from './TaxServices';
 
 const Services = () => {

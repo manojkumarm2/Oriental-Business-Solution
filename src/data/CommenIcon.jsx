@@ -1,23 +1,28 @@
 import { FaFacebookF } from "react-icons/fa";
-import { BiLogoTwitter } from "react-icons/bi";
-import { SiYoutube } from "react-icons/si";
+import { FaWhatsapp } from "react-icons/fa";
 import { FaInstagram } from "react-icons/fa";
+import { FaLinkedin } from "react-icons/fa";
+import { APP_CONFIG } from "../config/app.config";
 
 export const commenIcon = [
     {
         id: 1,
-        icon: <FaFacebookF />
+        icon: <FaFacebookF />,
+        path: APP_CONFIG.facebookLink
     },
     {
         id: 2,
-        icon: <BiLogoTwitter />
+        icon: <FaWhatsapp />,
+        path: APP_CONFIG.whatsAppLink
     },
     {
         id: 3,
-        icon: <SiYoutube />
+        icon: <FaLinkedin />,
+        path: APP_CONFIG.linkedInLink
     },
     {
         id: 4,
-        icon: <FaInstagram />
-    },
+        icon: <FaInstagram />,
+        path: APP_CONFIG.instaLink
+    }
 ]

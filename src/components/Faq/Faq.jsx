@@ -2,9 +2,9 @@ import React from 'react';
 import { FaHome } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
 import { Link } from 'react-router-dom';
-import Navbar from "../commen/Navbar.jsx";
+import Navbar from "../Common/Navbar.jsx";
 import FaqQuestions from './FaqQuestions.jsx';
-import Footer from '../commen/Footer.jsx';
+import Footer from '../Common/Footer.jsx';
 
 const Faq = () => {
     return (

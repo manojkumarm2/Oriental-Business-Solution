@@ -17,8 +17,8 @@ import img7 from '../../Assets/service/auditing.jpg';
 import img8 from '../../Assets/service/payroll.jpg';
 import img9 from '../../Assets/service/planning.jpg';
 import img10 from '../../Assets/service/corporatedocum.jpg';
-import Footer from '../commen/Footer.jsx';
-import Navbar from "../commen/Navbar.jsx";
+import Footer from '../Common/Footer.jsx';
+import Navbar from "../Common/Navbar.jsx";
 
 const ServiceDetails = () => {
 

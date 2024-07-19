@@ -3,8 +3,9 @@ import { IoMail } from "react-icons/io5";
 import { FaLocationDot } from "react-icons/fa6";
 import { FaPhoneAlt } from "react-icons/fa";
 import { commenIcon } from "../../data/CommenIcon.jsx";
-import CopyRights from "./CopyRights";
+import CopyRights from "./CopyRights.jsx";
 import { Link } from "react-router-dom";
+import { APP_CONFIG } from "../../config/app.config.js";
 
 const Footer = () => {
   const footerMenu = [
@@ -41,26 +42,20 @@ const Footer = () => {
       title: "Contact",
       list: [
         {
-          listTitle0: "4 Robert Speck Pkwy #1500, Mississauga, ON L4Z 1S1",
+          listTitle0: APP_CONFIG.address,
           icon: <FaLocationDot />,
-          path: "#",
-          type: "newwindow",
-          action:
-            "https://www.google.com/maps?q=4+Robert+Speck+Pkwy+%231500,+Mississauga,+ON+L4Z+1S1",
+          path: APP_CONFIG.addressLink,
+          type: "_blank",
         },
         {
-          listTitle: "info@orientalbusinesssolutions.ca",
+          listTitle: APP_CONFIG.email,
           icon: <IoMail />,
-          path: "#",
-          type: "navigate",
-          action: "mailto:info@orientalbusinesssolutions.ca",
+          path: APP_CONFIG.emailLink,
         },
         {
-          listTitle1: "(647) 855-6177",
+          listTitle1: APP_CONFIG.phone,
           icon: <FaPhoneAlt />,
-          path: "#",
-          type: "navigate",
-          action: "tel:+16478556177",
+          path: APP_CONFIG.phoneLink,
         },
       ],
     },
@@ -88,7 +83,7 @@ const Footer = () => {
               </p>
               <div className="d-flex footer_icon_container ">
                 {commenIcon.map((icon) => (
-                  <Link key={icon.id} className="footer_icon">
+                  <Link key={icon.id} className="footer_icon" to={icon.path} target="_blank">
                     {icon.icon}
                   </Link>
                 ))}
@@ -108,7 +103,7 @@ const Footer = () => {
                   {footerMenu.title}
                 </h4>
                 {footerMenu.list.map((footerList) => (
-                  <Link to={footerList.path} key={footerList.listTitle}>
+                  <Link to={footerList.path} key={footerList.listTitle} target={footerList.type || '' }>
                     <div className="col-12 col-md-6 col-lg-2 d-flex m-0">
                       <p className="d-block pe-3">{footerList.icon}</p>
                       <p className=" footer_nowrapp">{footerList.listTitle0}</p>
