@@ -1,9 +1,12 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom';
 import '../Home/Home.css';
-import Navbar from '../commen/Navbar';
+import Navbar from '../Common/Navbar';
 
 
 const Banner = () => {
+    const navigate = useNavigate();
+
     return (
         <>
             <div className="home_container">
@@ -11,12 +14,12 @@ const Banner = () => {
                     <Navbar />
                     <div className="home_head_container container" >
                         <div className=" home_content d-flex flex-column gap-3 position-relative" >
-                            <h2 data-aos="flip-right" >Welcome to Oriental Business Solution  </h2>
+                            <h2 data-aos="flip-right" >Leading Tax Consultant & Business Services</h2>
                             <p
                                 className="p1"
                                 data-aos="slide-up"
                             >
-                                Personalized accounting and tax preparation services.
+                                Welcome to Oriental Business Solution - Comprehensive Financial & Business Solutions
                             </p>
                             <button
                                 className="btn cta-btn p-2 mx-auto mx-md-0"
@@ -28,6 +31,9 @@ const Banner = () => {
                                     border: 'none',
                                     width: '250px',
                                     height: '50px'
+                                }}
+                                onClick={() => {
+                                    navigate('/contact');
                                 }}
                             >
                                 Get Started Now

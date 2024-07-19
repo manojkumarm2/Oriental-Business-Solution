@@ -3,16 +3,17 @@ import "./contact.css";
 import { FaSquareFacebook } from "react-icons/fa6";
 import { FaSquareInstagram } from "react-icons/fa6";
 import { FaSquareWhatsapp } from "react-icons/fa6";
-import Footer from "../commen/Footer";
 import { FaHome } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
 import { Link } from "react-router-dom";
-import Navbar from "../commen/Navbar";
+import Navbar from "../Common/Navbar";
 import { useState } from "react";
 import emailjs from "emailjs-com";
 import Logo from "../../Assets/contactlogo.jpg";
+import Footer from "../Common/Footer";
 import {toast } from "react-toastify";
-import { AppConfig } from '../../config/app.config'
+import { APP_CONFIG } from '../../config/app.config';
+import { commenIcon } from "../../data/CommenIcon";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -21,6 +22,27 @@ const Contact = () => {
     interest: "",
     message: "",
   });
+
+  const footerMenu =
+    {
+      id: 3,
+      title: "Contact",
+      list: [
+        {
+          listTitle: APP_CONFIG.address,
+          path: APP_CONFIG.addressLink,
+          type: "_blank",
+        },
+        {
+          listTitle: APP_CONFIG.email,
+          path: APP_CONFIG.emailLink,
+        },
+        {
+          listTitle: APP_CONFIG.phone,
+          path: APP_CONFIG.phoneLink,
+        },
+      ],
+    };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,10 +60,10 @@ const Contact = () => {
     if (name && email && interest && message) {
       emailjs
         .sendForm(
-            AppConfig.email.service,
-            AppConfig.email.contact_template,
+            APP_CONFIG.emailJs.service,
+            APP_CONFIG.emailJs.contact_template,
             e.target,
-            AppConfig.email.publicKey
+            APP_CONFIG.emailJs.publicKey
         )
         .then(
           (result) => {
@@ -99,14 +121,18 @@ const Contact = () => {
             <div className="contact-items">
               <div className="contact-item">
                 <h2>Contact</h2>
-                <p>4 Robert Speck Pkwy #1500, Mississauga, ON L4Z 1S1</p>
-                <p>info@orientalbusinesssolutions.ca</p>
-                <p>(647) 855-6177</p>
+                {footerMenu.list.map((footerList) => (
+                  <p><Link to={footerList.path} key={footerList.listTitle} target={footerList.type || '' }>
+                    {footerList.listTitle}
+                  </Link></p>
+                ))}
               </div>
               <div className="social-icons">
-                <FaSquareFacebook />
-                <FaSquareInstagram />
-                <FaSquareWhatsapp />
+                {commenIcon.map((icon) => (
+                  <Link key={icon.id} to={icon.path} target="_blank">
+                    {icon.icon}
+                  </Link>
+                ))}
               </div>
             </div>
           </div>
@@ -168,7 +194,7 @@ const Contact = () => {
       </div>
       <div className="map-container">
         <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2889.4471835333743!2d-79.63857822240347!3d43.59722987110489!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b473b287e3351%3A0xc4338c578acef23e!2sMississauga%20Tax%20Consulting%20-%20International%20Tax%20-%20US%20Tax%20-%20Corporate%20Tax%20-%20Personal%20Tax!5e0!3m2!1sen!2sca!4v1720753694958!5m2!1sen!2sca"
+          src={APP_CONFIG.gmapLink}
           width="100%"
           height="450"
           allowFullScreen=""

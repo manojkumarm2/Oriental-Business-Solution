@@ -1,13 +1,13 @@
 import React, { useRef, useState } from "react";
 import "./Ftcf.css";
 import { Link } from "react-router-dom";
-import Navbar from "../commen/Navbar";
+import Navbar from "../Common/Navbar";
 import { FaHome } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
-import Footer from "../commen/Footer";
+import Footer from "../Common/Footer";
 import emailjs from "emailjs-com";
 import { toast } from "react-toastify";
-import { AppConfig } from '../../config/app.config'
+import { APP_CONFIG } from '../../config/app.config'
 
 const Ftcf = () => {
   const formRef = useRef();
@@ -67,7 +67,7 @@ const Ftcf = () => {
     // };
 
     if (formValid) {
-      const emailConfig = AppConfig.email;
+      const emailConfig = APP_CONFIG.emailJs;
       const { service, ftcf_template, publicKey } = emailConfig;
       emailjs
         .sendForm(
@@ -305,8 +305,8 @@ const Ftcf = () => {
           <div id="successMessage" class="success-message" tabindex="0">
           <p><b>Form sent successfully!</b></p>
           <p>If you wish to share the attachments, you can email them directly to: 
-              <a href={`mailto:ashok@orientalbusinesssolutions.com?subject=Attachments for: ${name}&body=Here are the attachments: `}>
-                admin@orientalbusinesssolutions.com
+              <a href={`${APP_CONFIG.emailLink}?subject=Attachments for: ${name}&body=Here are the attachments: `}>
+                {APP_CONFIG.email}
               </a>
             </p>
             <p><b>Required Docs:</b></p>

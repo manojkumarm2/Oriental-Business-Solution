@@ -8,10 +8,10 @@ import icon3 from '../../Assets/about/icon-3.jpg';
 import icon4 from '../../Assets/about/icon-4.jpg';
 import ima from '../../Assets/about/about-section.jpg';
 import team from '../../Assets/about/team2.jpg';
-import Footer from '../commen/Footer';
+import Footer from '../Common/Footer.jsx';
 import { FaHome } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
-import Navbar from '../commen/Navbar.jsx';
+import Navbar from '../Common/Navbar.jsx';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 

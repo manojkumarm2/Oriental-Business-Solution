@@ -2,7 +2,7 @@ import React from "react";
 import { useState } from "react";
 import emailjs from "emailjs-com";
 import { toast } from "react-toastify";
-import { AppConfig } from '../../config/app.config'
+import { APP_CONFIG } from '../../config/app.config'
 
 const Map_form = () => {
   const [formData, setFormData] = useState({
@@ -28,10 +28,10 @@ const Map_form = () => {
     if (name && email && service && message) {
       emailjs
         .sendForm(
-          AppConfig.email.service,
-          AppConfig.email.contact_template,
+          APP_CONFIG.email.service,
+          APP_CONFIG.email.contact_template,
           e.target,
-          AppConfig.email.publicKey
+          APP_CONFIG.email.publicKey
         )
         .then(
           (result) => {

@@ -4,7 +4,7 @@ import { IoIosArrowForward } from "react-icons/io";
 import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import "./BlogDetail.css";
-import Footer from "../commen/Footer";
+import Footer from "../Common/Footer";
 
 const BlogDetails = () => {
   const blogcard = [

@@ -13,12 +13,12 @@ import img4 from "../../Assets/service/businessregi.jpg";
 import img5 from "../../Assets/service/Loans.jpg";
 import img6 from "../../Assets/service/RentalProperty.jpg";
 
-import img7 from "../../Assets/service/auditing.jpg";
-import img8 from "../../Assets/service/payroll.jpg";
-import img9 from "../../Assets/service/planning.jpg";
-import img10 from "../../Assets/service/corporatedocum.jpg";
-import Footer from "../commen/Footer.jsx";
-import Navbar from "../commen/Navbar.jsx";
+import img7 from '../../Assets/service/auditing.jpg';
+import img8 from '../../Assets/service/payroll.jpg';
+import img9 from '../../Assets/service/planning.jpg';
+import img10 from '../../Assets/service/corporatedocum.jpg';
+import Footer from '../Common/Footer.jsx';
+import Navbar from "../Common/Navbar.jsx";
 
 const ServiceDetails = () => {
   const cards = [
@@ -28,7 +28,7 @@ const ServiceDetails = () => {
       desc1:
         "We offer comprehensive tax consulting services for individuals and businesses. Our experienced tax professionals help you navigate complex tax regulations, ensure compliance, and optimize your tax strategy. Whether you need help with personal tax planning, corporate tax strategies, or international tax laws, we provide expert guidance and support.",
       desc2:
-        "“Our experienced tax professionals help you navigate complex tax regulations, ensure compliance, and optimize your tax strategy.“",
+        "“Maximize your savings with our expert tax consulting services tailored to your unique business needs.“",
       desc3:
         "Our goal is to simplify the tax process so you can focus on growing your business or managing your personal finances. With our proactive approach, we identify opportunities to minimize tax liabilities and maximize savings. Partner with us for personalized service and a commitment to your financial success.",
       img: img1,
