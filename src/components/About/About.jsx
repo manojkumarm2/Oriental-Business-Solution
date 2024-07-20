@@ -144,18 +144,18 @@ const About = () => {
         <h1 data-aos="fade-up">Meet Our Expert Tax Consulting Team</h1>
         <div className="team-container">
           <div className="team-member" data-aos="fade-up">
-            <img src={team} alt="Johnathan Stehr" />
-            <h3>Johnathan</h3>
+            {/* <img src={team} alt="Johnathan Stehr" /> */}
+            <h3>Ashok Manickam</h3>
             <p>Senior Tax Consultant</p>
           </div>
           <div className="team-member" data-aos="fade-up">
-            <img src={team} alt="Brian Ebert" />
+            {/* <img src={team} alt="Brian Ebert" /> */}
             <h3>Brian Ebert</h3>
             <p>Tax Compliance Officer</p>
           </div>
           <div className="team-member" data-aos="fade-up">
-            <img src={team} alt="Marion Blanda" />
-            <h3>Marion Blanda</h3>
+            {/* <img src={team} alt="Marion Blanda" /> */}
+            <h3>Johnathan</h3>
             <p>Transfer Pricing Consultant</p>
           </div>
         </div>

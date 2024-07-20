@@ -42,7 +42,7 @@ const Footer = () => {
       title: "Contact",
       list: [
         {
-          listTitle0: APP_CONFIG.address,
+          listTitle0: APP_CONFIG.address2line,
           icon: <FaLocationDot />,
           path: APP_CONFIG.addressLink,
           type: "_blank",

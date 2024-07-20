@@ -1,13 +1,9 @@
-import React from "react";
+import React, { useRef, useState }  from "react";
 import "./contact.css";
-import { FaSquareFacebook } from "react-icons/fa6";
-import { FaSquareInstagram } from "react-icons/fa6";
-import { FaSquareWhatsapp } from "react-icons/fa6";
 import { FaHome } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
 import { Link } from "react-router-dom";
 import Navbar from "../Common/Navbar";
-import { useState } from "react";
 import emailjs from "emailjs-com";
 import Logo from "../../Assets/contactlogo.jpg";
 import Footer from "../Common/Footer";
@@ -16,12 +12,20 @@ import { APP_CONFIG } from '../../config/app.config';
 import { commenIcon } from "../../data/CommenIcon";
 
 const Contact = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    interest: "",
-    message: "",
-  });
+
+  const formRef = useRef();
+
+  const [formSubmitted, setFormSubmitted] = useState(false);
+
+  const validateForm = (formValues) => {
+    const errors = {};
+    for (const [key, value] of Object.entries(formValues)) {
+      if (value?.trim() === '') {
+        errors[key] = `${key} is required`;
+      }
+    }
+    return errors;
+  };
 
   const footerMenu =
     {
@@ -44,32 +48,33 @@ const Contact = () => {
       ],
     };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
+    const formData = new FormData(formRef.current);
+    const formValues = Object.fromEntries(formData.entries());
+    let formValid = true;
+    const errors = validateForm(formValues);
+    if (Object.keys(errors).length > 0) {
+      formValid = false;
+    }
 
-    const { name, email, interest, message } = formData;
-
-    if (name && email && interest && message) {
+    if (formValid) {
+      setFormSubmitted(true);
+      const emailConfig = APP_CONFIG.emailJs;
+      const { service, contact_template, publicKey } = emailConfig;
       emailjs
         .sendForm(
-            APP_CONFIG.emailJs.service,
-            APP_CONFIG.emailJs.contact_template,
-            e.target,
-            APP_CONFIG.emailJs.publicKey
+            service,
+            contact_template,
+            formRef.current,
+            publicKey
         )
         .then(
           (result) => {
             console.log(result.text);
             toast.success("Message sent successfully!");
-            setFormData({ name: "", email: "", service: "", message: "" }); // Reset form data
+            formRef.current.reset();
+            setFormSubmitted(false);
           },
           (error) => {
             console.log(error.text);
@@ -143,29 +148,23 @@ const Contact = () => {
             Use our contact form below to get started on optimizing your
             financial strategy with confidence.
           </p>
-          <form onSubmit={handleSubmit}>
+          <form ref={formRef} onSubmit={handleSubmit}>
             <input
               type="text"
               name="name"
               placeholder="Name"
               required
-              value={formData.name}
-              onChange={handleChange}
             />
             <input
               type="email"
               name="email"
               placeholder="Email"
               required
-              value={formData.email}
-              onChange={handleChange}
             />
             <select
               className="form-select"
-              name="interest"
+              name="service"
               required
-              value={formData.interest}
-              onChange={handleChange}
             >
               <option value="" disabled>
                 Select a service
@@ -185,10 +184,8 @@ const Contact = () => {
               name="message"
               placeholder="Message"
               required
-              value={formData.message}
-              onChange={handleChange}
             ></textarea>
-            <button type="submit">Send Message</button>
+            <button disabled={formSubmitted} type="submit">Send Message</button>
           </form>
         </div>
       </div>

@@ -11,15 +11,17 @@ import { APP_CONFIG } from '../../config/app.config'
 
 const Ftcf = () => {
   const formRef = useRef();
+  const topRef = useRef();
   // const [fileData, setFileData] = useState([]);
   const [name, setName] = useState('');
   const [formSubmitted, setFormSubmitted] = useState(false);
 
   const validateForm = (formValues) => {
     const errors = {};
+    const exceptionElement = ['medical-expense', 'child', 'notes', 'attachment']
     for (const [key, value] of Object.entries(formValues)) {
       if (key === 'name') setName(value);
-      if (key !== 'attachment' && value?.trim() === '') {
+      if (!exceptionElement.includes(key) && value?.trim() === '') {
         errors[key] = `${key} is required`;
       }
     }
@@ -52,7 +54,7 @@ const Ftcf = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
+    topRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const formData = new FormData(formRef.current);
     const formValues = Object.fromEntries(formData.entries());
     let formValid = true;
@@ -82,6 +84,7 @@ const Ftcf = () => {
             toast.success("Form sent successfully!");
             setFormSubmitted(true);
             formRef.current.reset();
+            topRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
           },
           (error) => {
             console.log(error.text);
@@ -146,19 +149,19 @@ const Ftcf = () => {
         </div>
       </div>
 
-      <div className=" py-5 form-container container d-flex flex-column" style={{ width: "60%" }}>
+      <div ref={topRef} className=" py-5 form-container ftcf-form-container container d-flex flex-column">
         {/* <h4 className="text-align-center">FREE TAX CLINIC FORM</h4> */}
         {!formSubmitted ? (
           <form ref={formRef} className="d-flex flex-column justify-content-center" style={{ fontSize: '20px' }} onSubmit={handleSubmit}>
             <div className="mb-3">
               <label for="exampleInputEmail1" className="form-label">
                 Name
-              </label>
+              </label> 
+              <span id="emailHelp" className="form-text">
+                 (As Per CRA / Service Canada)
+              </span>
               <input name="name" type="text" className="form-control" required
               />
-              <div id="emailHelp" className="form-text">
-                (as Per CRA / service canada)
-              </div>
             </div>
 
             <div className="mb-3">
@@ -176,11 +179,11 @@ const Ftcf = () => {
               <label for="exampleInputEmail1" className="form-label">
                 DOB
               </label>
-              <input name="dob" type="text" className="form-control" required
-              />
-              <div id="emailHelp" className="form-text">
+              <span id="emailHelp" className="form-text">
                 (DD/MM/YYYY).
-              </div>
+              </span>
+              <input name="dob" type="text" className="form-control" required placeholder="DD/MM/YYYY"
+              />
             </div>
 
             <div className="mb-3">
@@ -198,33 +201,30 @@ const Ftcf = () => {
               <label for="exampleInputEmail1" className="form-label">
                 Date of Entry to Canada
               </label>
-              <input name="doe" type="text" className="form-control" required
-              />
-              <div id="emailHelp" className="form-text">
+              <span id="emailHelp" className="form-text">
                 (DD/MM/YYYY)
-              </div>
+              </span>
+              <input name="doe" type="text" className="form-control" required placeholder="DD/MM/YYYY"
+              />
             </div>
 
             <div className="mb-3">
               <label for="exampleInputEmail1" className="form-label">
                 Status in Canada
               </label>
+              <span id="emailHelp" className="form-text">
+                (WP/PR/Citizenship)
+              </span>
               <input name="status" type="text" className="form-control" required
               />
-              <div id="emailHelp" className="form-text">
-                (WP/PR/Citizenship)
-              </div>
             </div>
 
             <div className="mb-3">
               <label for="exampleInputEmail1" className="form-label">
                 Address
               </label>
-              <input name="address" type="text" className="form-control" required
+              <input name="address" type="text" className="form-control" required placeholder="Street no & name, city, portal code"
               />
-              <div id="emailHelp" className="form-text">
-                (Street no & name, city, portal code)
-              </div>
             </div>
 
             <div className="mb-3">
@@ -238,17 +238,16 @@ const Ftcf = () => {
             <div class="mb-3">
               <label for="exampleFormControlTextarea1" class="form-label">
                 Medical Expenses
-              </label>
+              </label><span id="emailHelp" className="form-text">
+              </span>
               <textarea
                 class="form-control"
                 id="exampleFormControlTextarea1"
                 rows="5"
                 name="medical-expense"
-                value="NA"
+                placeholder="Yearly with date, clinic/doctor name and address."
               ></textarea>
-              <div id="emailHelp" className="form-text">
-                (Yearly with date, clinic/doctor name and address)
-              </div>
+              
             </div>
 
             <div class="mb-3">
@@ -260,11 +259,9 @@ const Ftcf = () => {
                 id="exampleFormControlTextarea1"
                 rows="5"
                 name="child"
-                value="NA"
+                placeholder="Fullname, DoB, SIN if possible."
               ></textarea>
-              <div id="emailHelp" className="form-text">
-                (Fullname, DoB, SIN if possible)
-              </div>
+              
             </div>
 
             {/* <div class="mb-3">
@@ -290,11 +287,9 @@ const Ftcf = () => {
                 id="exampleFormControlTextarea1"
                 rows="5"
                 name="notes"
-                value="NA"
+                placeholder="Include tax year from 2013 onwords."
               ></textarea>
-              <div id="emailHelp" className="form-text">
-                (Include tax year from 2013 onwords)
-              </div>
+              
             </div>
 
             <button type="submit" className="btn btn-primary">

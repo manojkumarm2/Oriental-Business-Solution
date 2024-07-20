@@ -32,3 +32,13 @@
 .success-message a:hover {
     text-decoration: underline;
 }
+
+.ftcf-form-container {
+    width: 60%;
+}
+
+@media (max-width: 768px) {
+    .ftcf-form-container {
+        width: 85%;
+    }
+}
