@@ -21,7 +21,7 @@ const TaxServices = () => {
 
     const taxserviceCartRight = [
         { id: 1, title: "Tax Consulting", img: img1, desc: "Personalized strategies to optimize your tax liabilities and ensure compliance...",path: "", detail: "View Detail" },
-        { id: 2, title: "Bookkeeping", img: img2, desc: "Accurate and efficient tracking of your financial transactions and records...", path: " ", detail: "View Detail" },
+        { id: 2, title: "Bookkeeping Services", img: img2, desc: "Accurate and efficient tracking of your financial transactions and records...", path: " ", detail: "View Detail" },
         { id: 3, title: "Taxes", img: img3, desc: "Comprehensive tax services tailored for individuals, businesses, and corporations...", path: " ", detail: "View Detail" },
         { id: 4, title: "Business Registration", img: img4, desc: "Streamlined assistance in registering and structuring your new business...", path: " ", detail: "View Detail" },
         { id: 5, title: "Loans & Mortgages", img: img5, desc: "Navigating the complexities of loans and mortgages can be challenging...", path: " ", detail: "View Detail" },
