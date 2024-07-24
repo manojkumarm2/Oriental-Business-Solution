@@ -83,7 +83,7 @@ const IndividualTax = (props) => {
                     {
                         IndividualCard.map((card) => (
                             <div
-                                data-aos="zoom-in"
+                                // data-aos="zoom-in"
                                 className="col-12 col-md-5 col-xl-2 px-3 py-5 m-3 text-center"
                                 key={card.id}
                                 style={{

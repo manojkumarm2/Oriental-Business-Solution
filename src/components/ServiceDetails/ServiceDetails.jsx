@@ -363,7 +363,7 @@ const ServiceDetails = () => {
 
   return (
     <>
-      <div className="serviceDetail_container">
+      <div className="serviceDetail_container" id="section">
         <div className="serviceDetail_bg">
           <Navbar />
           <div className="serviceDetail_head_container">

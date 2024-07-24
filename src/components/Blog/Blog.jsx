@@ -22,7 +22,7 @@ const Blog = () => {
       <div className="blog_container">
         <div className="blog_bgs">
           <Navbar />
-          <div className="serviceDetail_head_container">
+          <div className="blog_head_container">
             <div className="d-flex">
               <Link to="/" style={{ textDecoration: "none", color: "#fff" }}>
                 <div className="d-flex">
@@ -51,12 +51,12 @@ const Blog = () => {
         <div className="blog_bg py-5">
           <div className="blog_head_container py-5 d-flex justify-content-center">
             <div className="blog_head_item col-12 col-md-10 col-lg-6" data-aos="fade-up">
-              <h6
+              {/* <h6
                 className="text-center"
                 style={{ color: "#4A6EC9", textTransform: "uppercase" }}
               >
                 blog
-              </h6>
+              </h6> */}
               <h2 className="text-center" >Latest Blog Post</h2>
               <p className="text-center blog_para pt-3 ">
                 Explore expert insights and tips on tax consulting and business services.

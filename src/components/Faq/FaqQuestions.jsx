@@ -113,13 +113,13 @@ const FaqQuestions = () => {
     return (
         <>
             <div className="container text-center faq_question py-5">
-                <h6
+                {/* <h6
                     style={{
                         color: "#4A6EC980"
                     }}
                 >
                     FAQ
-                </h6>
+                </h6> */}
                 <h1>Frequently Asked Questions</h1>
                 <p
                     className='py-4'

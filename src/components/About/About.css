@@ -1,6 +1,6 @@
 .about_container {
     width: 100%;
-    height: 100vh;
+    height: 70vh;
     background: url(../../Assets/Banner/about.jpg);
     background-size: cover;
     background-repeat: no-repeat;
@@ -12,6 +12,50 @@
     width: 100%;
     height: 100%;
 }
+
+.about_head_container {
+    color: #fff;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.about_head_container h1 {
+    font-size: 34px;
+    font-weight: 700;
+    padding-top: 15px;
+}
+@media(min-width:768px) {
+    .about_head_container h1 {
+        font-size: 65px;
+    }
+}
+@keyframes about_head {
+    from {
+        transform: translateX(-20px);
+    }
+}
+
+.about_head_container h6 {
+    display: inline-block;
+    animation: 2s about_head linear;
+}
+
+@keyframes about_head_h1 {
+    from {
+        transform: rotateX(180deg);
+    }
+}
+
+.about_head_container h1 {
+    animation: 1s about_head_h1 linear;
+}
+
+
+
+
 
 @keyframes moveUp {
     0% {

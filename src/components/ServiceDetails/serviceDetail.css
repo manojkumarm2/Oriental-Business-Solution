@@ -35,6 +35,27 @@
     }
 }
 
+@keyframes serviceDetail_head {
+    from {
+        transform: translateX(-20px);
+    }
+}
+
+.serviceDetail_head_container h6 {
+    display: inline-block;
+    animation: 2s serviceDetail_head linear;
+}
+
+@keyframes serviceDetail_head_h1 {
+    from {
+        transform: rotateX(180deg);
+    }
+}
+
+.serviceDetail_head_container h1 {
+    animation: 1s serviceDetail_head_h1 linear;
+}
+
 /* IndividualTax START */
 
 .individula_btn:hover {

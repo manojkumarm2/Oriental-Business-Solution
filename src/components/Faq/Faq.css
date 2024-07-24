@@ -37,6 +37,27 @@
     }
 }
 
+@keyframes faq_head {
+    from {
+        transform: translateX(-20px);
+    }
+}
+
+.faq_head_container h6 {
+    display: inline-block;
+    animation: 2s faq_head linear;
+}
+
+@keyframes faq_head_h1 {
+    from {
+        transform: rotateX(180deg);
+    }
+}
+
+.faq_head_container h1 {
+    animation: 1s service_head_h1 linear;
+}
+
 /* FAQ QUESTION CSS START*/
 
 .faq_question h1 {

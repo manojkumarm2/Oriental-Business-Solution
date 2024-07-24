@@ -61,7 +61,7 @@ const About = () => {
       <div className="about_container">
         <div className="about_bg">
           <Navbar />
-          <div className="serviceDetail_head_container">
+          <div className="about_head_container">
             <div className="d-flex">
               <Link to="/" style={{ textDecoration: "none", color: "#fff" }}>
                 <div className='d-flex'>

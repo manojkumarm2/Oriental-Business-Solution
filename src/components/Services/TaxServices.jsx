@@ -20,18 +20,18 @@ import 'aos/dist/aos.css';
 const TaxServices = () => {
 
     const taxserviceCartRight = [
-        { id: 1, title: "Tax Consulting", img: img1, desc: "Personalized strategies to optimize your tax liabilities and ensure compliance...", path: "", detail: "View Detail" },
-        { id: 2, title: "Bookkeeping", img: img2, desc: "Accurate and efficient tracking of your financial transactions and records...", path: "", detail: "View Detail" },
-        { id: 3, title: "Taxes", img: img3, desc: "Comprehensive tax services tailored for individuals, businesses, and corporations...", path: "", detail: "View Detail" },
-        { id: 4, title: "Business", img: img4, desc: "Streamlined assistance in registering and structuring your new business...", path: "", detail: "View Detail" },
-        { id: 5, title: "Loans & Mortgages", img: img5, desc: "Navigating the complexities of loans and mortgages can be challenging...", path: "", detail: "View Detail" },
+        { id: 1, title: "Tax Consulting", img: img1, desc: "Personalized strategies to optimize your tax liabilities and ensure compliance...",path: "", detail: "View Detail" },
+        { id: 2, title: "Bookkeeping", img: img2, desc: "Accurate and efficient tracking of your financial transactions and records...", path: " ", detail: "View Detail" },
+        { id: 3, title: "Taxes", img: img3, desc: "Comprehensive tax services tailored for individuals, businesses, and corporations...", path: " ", detail: "View Detail" },
+        { id: 4, title: "Business", img: img4, desc: "Streamlined assistance in registering and structuring your new business...", path: " ", detail: "View Detail" },
+        { id: 5, title: "Loans & Mortgages", img: img5, desc: "Navigating the complexities of loans and mortgages can be challenging...", path: " ", detail: "View Detail" },
     ];
     const taxserviceCartLeft = [
-        { id: 6, title: "Rental Property", img: img6, desc: "Owning rental property in Canada can be a lucrative investment, but it's... ", path: "", detail: "View Detail" },
-        { id: 7, title: "Auditing", img: img7, desc: "Thorough examinations of your financial statements to ensure accuracy and compliance...", path: "", detail: "View Detail" },
-        { id: 8, title: "Payroll ", img: img8, desc: "Efficient and reliable payroll processing and compliance services...", path: "", detail: "View Detail" },
-        { id: 9, title: "Planning", img: img9, desc: "Strategic financial planning and detailed reporting for informed decision-making...", path: "", detail: "View Detail" },
-        { id: 10, title: "Legally Required", img: img10, desc: "Expert preparation and management of essential corporate documents to...", path: "", detail: "View Detail" },
+        { id: 6, title: "Rental Property", img: img6, desc: "Owning rental property in Canada can be a lucrative investment, but it's... ", path: " ", detail: "View Detail" },
+        { id: 7, title: "Auditing", img: img7, desc: "Thorough examinations of your financial statements to ensure accuracy and compliance...", path: " ", detail: "View Detail" },
+        { id: 8, title: "Payroll ", img: img8, desc: "Efficient and reliable payroll processing and compliance services...", path: " ", detail: "View Detail" },
+        { id: 9, title: "Planning", img: img9, desc: "Strategic financial planning and detailed reporting for informed decision-making...", path: " ", detail: "View Detail" },
+        { id: 10, title: "Legally Required", img: img10, desc: "Expert preparation and management of essential corporate documents to...", path: " ", detail: "View Detail" },
     ];
 
     // const bottomSectionRef = useRef(null);
@@ -66,7 +66,7 @@ const TaxServices = () => {
                             <h2 className='text-center' >Our Tax Services</h2>
                             <p className='text-center taxservices_para pt-3 ' >
                                 Expert tax planning, preparation, and compliance services tailored to your unique
-                                needs for optimal financial outcomes.
+                                needs for optimal financial outcomes.
                             </p>
                         </div>
                     </div>
@@ -135,6 +135,7 @@ const TaxServices = () => {
                                     ))
                                 }
                             </div>
+
                             <div className="col-11 col-md-5 p-0 mx-2">
                                 {
                                     taxserviceCartLeft.map((cartLeft) => (
