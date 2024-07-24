@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import "./BlogDetail.css";
 import Footer from "../Common/Footer";
+import Navbar from "../Common/Navbar.jsx";
 
 const BlogDetails = () => {
   const blogcard = [
@@ -95,7 +96,7 @@ const BlogDetails = () => {
   //   const { title } = blogcards;
   return (
     <>
-      <div className="serviceDetail_container">
+      {/* <div className="serviceDetail_container">
         <div className="serviceDetail_bg">
           <div className="blogDetail_head_container d-flex justify-content-center">
             <div className="d-flex">
@@ -129,6 +130,73 @@ const BlogDetails = () => {
               </Link>
             </div>
             <h1 className="blog-title">{blogcards.title}</h1>
+          </div>
+        </div>
+      </div> */}
+      <div className="serviceDetail_container" id="section">
+        <div className="serviceDetail_bg">
+          <Navbar />
+          <div className="serviceDetail_head_container">
+            <div className="d-flex flex-wrap justify-content-center">
+              <Link
+                to="/"
+                style={{
+                  textDecoration: "none",
+                  color: "#fff",
+                }}
+              >
+                <div className="d-flex">
+                  <FaHome
+                    style={{
+                      fontSize: "20px",
+                      margin: "0 13px",
+                    }}
+                     />
+                  <h6
+                    style={{
+                      margin: "0 6px",
+                    }}
+                  >
+                    HOME
+                  </h6>
+                </div>
+              </Link>
+              <Link
+                to="/blog"
+                style={{
+                  textDecoration: "none",
+                  color: "#fff",
+                }}
+              >
+                <div className="d-flex">
+                  <IoIosArrowForward
+                    style={{
+                      fontSize: "18px",
+                      margin: "0 13px",
+                    }}
+                  />
+                  <h6>BLOG</h6>
+                </div>
+              </Link>
+              <Link
+                to={`/blogdetails/${blogcards.id}`}
+                style={{
+                  textDecoration: "none",
+                  color: "#fff",
+                }}
+              >
+                <div className="d-flex">
+                  <IoIosArrowForward
+                    style={{
+                      fontSize: "18px",
+                      margin: "0 13px",
+                    }}
+                  />
+                  <h6>BLOG DETAIL</h6>
+                </div>
+              </Link>
+            </div>
+            <h1 className="text-center">{blogcards.title}</h1>
           </div>
         </div>
       </div>

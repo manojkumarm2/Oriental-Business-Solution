@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import Logo from '../../Assets/obs.png';
+import Logo from '../../Assets/obs_logo.png';
 import { useRef } from 'react';
 
 const Navbar = () => {
@@ -67,7 +67,7 @@ const Navbar = () => {
                         >
                             <img
                                 src={Logo}
-                                className=" align-text-top"
+                                className=" align-text-top mx-3"
                                 alt='OBS_logo'
                                 style={{
                                     width: '180px',
