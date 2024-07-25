@@ -12,6 +12,11 @@
   text-decoration: none;
 }
 
+.nav-direction{
+  display: flex;
+  flex-direction: row-reverse;
+}
+
 .nav_container ul li a:hover {
   color: rgb(255, 180, 0);
   /* transition: 1s; */

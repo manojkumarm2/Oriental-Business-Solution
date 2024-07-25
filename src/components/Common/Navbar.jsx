@@ -48,7 +48,7 @@ const Navbar = () => {
     return (
         <>
             <div
-                className="d-flex w-100 py-2 position-absolute "
+                className="d-flex  w-100 py-2 position-absolute "
                 style={{
                     zIndex: 999
                 }}
@@ -60,17 +60,18 @@ const Navbar = () => {
                         height: '100px'
                     }}
                 >
-                    <div className="container-fluid d-flex justify-content-between navbar_tab_container m-0 p-0">
-                        <Link
+                    <div className="container-fluid flex-row-reverse d-flex justify-content-between navbar_tab_container m-0 p-0 ">
+
+                    <Link
                             className="navbar-brand"
                             to="/"
                         >
                             <img
                                 src={Logo}
-                                className=" align-text-top mx-3"
+                                className="align-text-top"
                                 alt='OBS_logo'
                                 style={{
-                                    width: '180px',
+                                    width: '240px',
                                     height: '80px'
                                 }}
                             />
@@ -97,11 +98,11 @@ const Navbar = () => {
 
                             </span>
                         </button>
+                        
                         <div
                             className="collapse navbar-collapse justify-content-center nav_container "
                             id="navbarNav"
-                            ref={navbarCollapseRef}
-                        >
+                            ref={navbarCollapseRef}>
                             <ul className="navbar-nav gap-5 p-4" >
                                 {
                                     navbarData.map((navbar) => (
@@ -122,6 +123,9 @@ const Navbar = () => {
                                 }
                             </ul>
                         </div>
+
+                        
+                        
                     </div>
                 </nav>
             </div>
