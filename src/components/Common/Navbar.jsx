@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import Logo from '../../Assets/obs_logo.png';
+import Logo from '../../Assets/nav-logo.png';
 import { useRef } from 'react';
 
 const Navbar = () => {
@@ -60,7 +60,7 @@ const Navbar = () => {
                         height: '100px'
                     }}
                 >
-                    <div className="container-fluid flex-row-reverse d-flex justify-content-between navbar_tab_container m-0 p-0 ">
+                    <div className="container-fluid d-flex justify-content-between navbar_tab_container m-0 p-0 ">
 
                     <Link
                             className="navbar-brand"
@@ -71,8 +71,8 @@ const Navbar = () => {
                                 className="align-text-top"
                                 alt='OBS_logo'
                                 style={{
-                                    width: '240px',
-                                    height: '80px'
+                                    width: '280px',
+                                    height: '85px'
                                 }}
                             />
                         </Link>
