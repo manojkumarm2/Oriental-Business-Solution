@@ -14,7 +14,7 @@ const CopyRights = () => {
                 <div className="container-lg">
                     <div className="row p-4 m-0">
                         <div className="col-md-12 text-center" >
-                            <FaRegCopyright /><span className='ps-2'>2024 Oriental Business Solutions Inc. Developed by Magizhini Technology Services Inc. All rights reserved.</span>
+                            <FaRegCopyright /><span className='ps-2'>2025 Oriental Business Solutions Inc. Developed by Magizhini Technology Services Inc. All rights reserved.</span>
                         </div>
                     </div>
                 </div>

@@ -5,7 +5,7 @@ import { IoIosArrowForward } from "react-icons/io";
 import { Link } from "react-router-dom";
 import Navbar from "../Common/Navbar";
 import emailjs from "emailjs-com";
-import Logo from "../../Assets/contactlogo.jpg";
+import Logo from "../../Assets/contactlogo.png";
 import Footer from "../Common/Footer";
 import { toast } from "react-toastify";
 import { APP_CONFIG } from "../../config/app.config";

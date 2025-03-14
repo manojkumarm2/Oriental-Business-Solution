@@ -64,7 +64,7 @@ const Map_form = () => {
           <div className="col-12 col-md-6 mt-3 ">
             <iframe
               className="home_map"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2889.4471835333743!2d-79.63857822240347!3d43.59722987110489!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x882b473b287e3351%3A0xc4338c578acef23e!2sMississauga%20Tax%20Consulting%20-%20International%20Tax%20-%20US%20Tax%20-%20Corporate%20Tax%20-%20Personal%20Tax!5e0!3m2!1sen!2sca!4v1720753694958!5m2!1sen!2sca"
+              src={APP_CONFIG.gmapLink}
               style={{
                 border: "0",
                 width: "100%",
