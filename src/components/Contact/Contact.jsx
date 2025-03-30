@@ -6,6 +6,9 @@ import { Link } from "react-router-dom";
 import Navbar from "../Common/Navbar";
 import emailjs from "emailjs-com";
 import Logo from "../../Assets/contactlogo.png";
+import indiaFlag from "../../Assets/locations/india-flag.png";
+import usaFlag from "../../Assets/locations/usa-flag.png";
+import canadaFlag from "../../Assets/locations/canada-flag.png";
 import Footer from "../Common/Footer";
 import { toast } from "react-toastify";
 import { APP_CONFIG } from "../../config/app.config";
@@ -31,9 +34,8 @@ const Contact = () => {
     title: "Contact",
     list: [
       {
-        listTitle: APP_CONFIG.address,
-        path: APP_CONFIG.addressLink,
-        type: "_blank",
+        listTitle: "ashok@orientalbiz.ca",
+        path: "mailto:ashok@orientalbiz.ca",
       },
       {
         listTitle: APP_CONFIG.email,
@@ -119,12 +121,15 @@ const Contact = () => {
             solutions that ensure your financial goals are met with precision
             and peace of mind.
           </p>
+
           <div className="contact-details">
-            <img
-              src={Logo}
-              alt="oriental business solution logo"
-              className="logo"
-            />
+            <div className="business-hours">
+              <h2>Business Hours</h2>
+              <p>Monday - Thursday: 9:30am - 8:00pm</p>
+              <p>Friday: 9:00am - 9:30pm</p>
+              <p>Saturday: 8:30am - 10:30pm</p>
+              <p>Sunday: 9:00am – 12:00pm</p>
+            </div>
             <div className="contact-items">
               <div className="contact-item">
                 <h2>Contact</h2>
@@ -140,6 +145,10 @@ const Contact = () => {
                   </p>
                 ))}
               </div>
+              <div className="social-item">
+                <h2>Follow Us</h2>
+                <p>Stay connected with us on social media</p>
+              </div>
               <div className="social-icons">
                 {commenIcon.map((icon) => (
                   <Link key={icon.id} to={icon.path} target="_blank">
@@ -148,6 +157,8 @@ const Contact = () => {
                 ))}
               </div>
             </div>
+
+
           </div>
         </div>
         <div className="contact-form">
@@ -187,7 +198,43 @@ const Contact = () => {
           </form>
         </div>
       </div>
-      <div className="map-container">
+      <div className="location-container">
+        <h2>Our Locations</h2>
+        <div className="locations-flex">
+          <div className="location">
+            <div className="location-logo">
+              <img src={canadaFlag} alt="Canada Flag" className="flag-icon" />
+              <h5>Canada HQ</h5>
+            </div>
+            <p>Corporate House</p>
+            <p>1450 Meyerside Dr, Mississauga, ON L5T 2N5</p>
+            <p>Phone: {APP_CONFIG.phone}</p>
+            <p>Email: {APP_CONFIG.email}</p>
+          </div>
+          <div className="location">
+            <div className="location-logo">
+              <img src={canadaFlag} alt="Canada Flag" className="flag-icon" />
+              <h5>Brampton, Canada</h5>
+            </div>
+            <p>80 Culture Cres, Brampton, ON, L6X 5A2.</p>
+          </div>
+          <div className="location">
+            <div className="location-logo">
+              <img src={usaFlag} alt="USA Flag" className="flag-icon" />
+              <h5>USA</h5>
+            </div>
+            <p>1500 WHITE BIRCH TER FREMONT, CA – 94536</p>
+            <p>Email: {APP_CONFIG.email}</p>
+          </div>
+          <div className="location">
+            <div className="location-logo">
+              <img src={indiaFlag} alt="India Flag" className="flag-icon" />
+              <h5>India</h5>
+            </div>
+            <p>Oriental Business Solutions Pvt Ltd</p>
+            <p>154 Shivani Palace, Revathipuram 4th Street, Urappakkam, Chennai 603210.</p>
+          </div>
+        </div>
         <iframe
           src={APP_CONFIG.gmapLink}
           width="100%"
