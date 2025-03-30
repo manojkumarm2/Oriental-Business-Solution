@@ -39,6 +39,18 @@ const Footer = () => {
     },
     {
       id: 3,
+      title: "Quik Links",
+      list: [
+        { listTitle: "Employment Insurance (EI)", path: "https://www.canada.ca/en/services/benefits/ei.html", type: "_blank" },
+        { listTitle: "Personal Taxes", path: "https://www.canada.ca/en/services/taxes/income-tax/personal-income-tax.html", type: "_blank" },
+        { listTitle: "HST Credit", path: "https://www.canada.ca/en/revenue-agency/services/child-family-benefits/goods-services-tax-harmonized-sales-tax-gst-hst-credit.html", type: "_blank" },
+        { listTitle: "Canada Child Benefit", path: "https://www.canada.ca/en/revenue-agency/services/child-family-benefits/canada-child-benefit-overview.html", type: "_blank" },
+        { listTitle: "Old Age Security (OAS)", path: "https://www.canada.ca/en/services/benefits/publicpensions/cpp/old-age-security.html", type: "_blank" },
+        { listTitle: "Canada Pension Plan (CPP)", path: "https://www.canada.ca/en/services/benefits/publicpensions/cpp.html", type: "_blank" },
+      ],
+    },
+    {
+      id: 4,
       title: "Contact",
       list: [
         {
@@ -75,7 +87,7 @@ const Footer = () => {
             className="row m-0 pt-5 justify-content-evenly"
             // style={{ borderTop: "1px solid rgb(88 117 192 / 59%)" }}
           >
-            <div className="col-12 col-md-6 col-lg-5 pt-3">
+            <div className="col-12 col-md-6 col-lg-3 pt-3">
               <p className="py-4">
                 Expert tax consultants offering personalized strategies for
                 individuals and businesses, ensuring compliance and maximizing
