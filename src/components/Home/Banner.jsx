@@ -39,6 +39,11 @@ const Banner = () => {
                                 Get Started Now
                             </button>
                         </div>
+                        <div className="home_note d-flex flex-column gap-3 position-relative" >
+                            <p className="p1">
+                                CRA approved one of the Free Tax Clinic- Community Volunteer Income Tax Programme (CVITP)
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
