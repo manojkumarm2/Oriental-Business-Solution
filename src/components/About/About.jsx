@@ -85,10 +85,21 @@ const About = () => {
           <p className='heading'>ABOUT US</p>
           <h1>Oriental Business Solutions</h1>
           <p className='description'>
-            Oriental Business Solutions has grown from a small consultancy into a respected firm. We began with a simple idea: to offer personalized, professional tax advisory services tailored to each client's needs.
+            Oriental Business Solutions Inc. is a young and dynamic company, involved in providing customer satisfaction is of utmost importance, and we believe in a long-lasting client partnership based on mutual trust and respect.
           </p>
           <p className='description'>
-            Over the years, we've built a reputation for excellence and trustworthiness. Our experienced team ensures clients receive top-notch guidance through the complexities of tax regulations and financial planning.
+            Our quality service, competitive pricing, and competent and swift response enables the progress and advancement of our clients.
+          </p>
+          <p className='description'>
+            Whether you are a small business, an international student, an independent contractor, or someone just looking for personal taxes, Oriental Business Solutions is there to help you to save your money and maximize your tax refunds. We can take care of all your accounting and bookkeeping needs.
+          </p>
+          <p className='description'>
+            Oriental Business Solutions has been serving individuals and businesses for several years. Starting off as a tax preparation and planning office, Oriental Business has grown to extend its service offerings. It offers countless services including tax, insurance, investments, business advisory, incorporation, and mortgages.
+          <ul>
+            <li>We are Fast, convenient, and friendly service.</li>
+            <li>Our strong business focus improves your bottom-line</li>
+            <li>We provide ongoing advice and instant support.</li>
+          </ul>
           </p>
           {/* <Link to='' className="read-more" data-aos="fade-right">Read More</Link> */}
         </div>
@@ -106,10 +117,13 @@ const About = () => {
         <div className="testimonial-content" data-aos="fade-up">
           <h2 className="testimonial-title">Who We Are</h2>
           <p className="testimonial-description">
-            At Oriental Business Solutions, we are your dedicated partners in tax and financial planning. With years of experience, our expert team offers personalized solutions to ensure compliance and maximize savings. Whether you're a small business owner optimizing deductions, a corporate executive needing strategic tax planning, or an individual navigating life changes, we provide tailored guidance to meet your unique needs.
+            <b>Ashok Manickam</b> became a Certified General Accountant (CGA) in 2011, and with the unification of the accounting profession in Canada, is now a Chartered Professional Accountant (CPA). He is well rounded in Personal taxes, Corporate taxes, Bookkeeping, and preparing year-end financial statements. He is knowledge and understanding of the Canadian financial market has been very beneficial in assessing clients’ needs, whether personal or corporate, for the past 12 years.
             <br />
             <br />
-            We go beyond mere compliance, proactively identifying opportunities to enhance your financial position. Our meticulous approach and strategic insights empower you to make informed decisions that lead to long-term success. From tax preparation to comprehensive consulting services, we deliver reliable advice and support throughout your financial journey.
+            He also provides bookkeeping support to clients that perform all accounting functions in-house. He is dedicated, hard-working, and well-liked by our clients and colleagues. 
+            <br />
+            <br />
+            <b><i>The right advice from our tax experts will save you time and money!</i></b>
           </p>
         </div>
         <div className="testimonial-background" data-aos="fade-up">
@@ -146,12 +160,13 @@ const About = () => {
           <div className="team-member" data-aos="fade-up">
             {/* <img src={team} alt="Johnathan Stehr" /> */}
             <h3>Ashok Manickam</h3>
-            <p>Senior Tax Consultant</p>
+            <p>Director of Operations</p>
+            <Link to="mailto:ashok@orientalbiz.ca">ashok@orientalbiz.ca</Link>
           </div>
           <div className="team-member" data-aos="fade-up">
             {/* <img src={team} alt="Brian Ebert" /> */}
-            <h3>Brian Ebert</h3>
-            <p>Tax Compliance Officer</p>
+            <h3>Vennila Ashok</h3>
+            <p>Tax Compliance Consultant</p>
           </div>
           <div className="team-member" data-aos="fade-up">
             {/* <img src={team} alt="Marion Blanda" /> */}
