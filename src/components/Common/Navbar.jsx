@@ -21,7 +21,7 @@ const Navbar = () => {
             path: "/service"
         },
         {
-            id: 4,
+            id: 5,
             title: "Contact",
             path: "/contact"
         },

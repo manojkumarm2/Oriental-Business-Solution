@@ -165,7 +165,7 @@ const About = () => {
           </div>
           <div className="team-member" data-aos="fade-up">
             {/* <img src={team} alt="Brian Ebert" /> */}
-            <h3>Vennila Ashok</h3>
+            <h3>Brian Ebert</h3>
             <p>Tax Compliance Consultant</p>
           </div>
           <div className="team-member" data-aos="fade-up">

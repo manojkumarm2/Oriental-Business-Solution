@@ -207,7 +207,7 @@ const Contact = () => {
               <h5>Canada HQ</h5>
             </div>
             <p>Corporate House</p>
-            <p>1450 Meyerside Dr, Mississauga, ON L5T 2N5</p>
+            <p>{APP_CONFIG.address}</p>
             <p>Phone: {APP_CONFIG.phone}</p>
             <p>Email: {APP_CONFIG.email}</p>
           </div>
@@ -217,6 +217,7 @@ const Contact = () => {
               <h5>Brampton, Canada</h5>
             </div>
             <p>80 Culture Cres, Brampton, ON, L6X 5A2.</p>
+            <p>Email: {APP_CONFIG.email}</p>
           </div>
           <div className="location">
             <div className="location-logo">
@@ -233,6 +234,7 @@ const Contact = () => {
             </div>
             <p>Oriental Business Solutions Pvt Ltd</p>
             <p>154 Shivani Palace, Revathipuram 4th Street, Urappakkam, Chennai 603210.</p>
+            <p>Email: {APP_CONFIG.email}</p>
           </div>
         </div>
         <iframe
