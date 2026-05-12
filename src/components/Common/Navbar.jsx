@@ -35,6 +35,11 @@ const Navbar = () => {
             title: "FAQ",
             path: "/faq"
         },
+        {
+            id: 8,
+            title: "Login",
+            path: "/customerData"
+        },
     ];
 
     const navbarCollapseRef = useRef(null);

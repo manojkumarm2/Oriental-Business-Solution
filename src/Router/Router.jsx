@@ -9,7 +9,8 @@ import FaqPage from '../Pages/FaqPage';
 import ServiceDetailsPages from '../Pages/ServiceDetailsPages';
 import BlogDetails from "../components/BlogDetails/BlogDetails";
 import FtcfPage from '../Pages/FtcfPage';
-import CustomerDataPage from '../Pages/CustomerDataPage';
+import PersonalTaxDataPage from '../Pages/PersonalTaxDataPage';
+import CorporateTaxDataPage from '../Pages/CorporateTaxDataPage';
 import ScrollToTop from '../components/Common/ScrollToTop';
 
 const Router = () => {
@@ -24,7 +25,8 @@ const Router = () => {
                     <Route path='/servicedetails/:id' element={<ServiceDetailsPages />} />
                     <Route path='/contact' element={<ContactPage />} />
                     <Route path='/free-tax-clinic-form' element={<FtcfPage />} />
-                    <Route path='/customerData' element={<CustomerDataPage />} />
+                    <Route path='/customerData' element={<PersonalTaxDataPage />} />
+                    <Route path='/corporateData' element={<CorporateTaxDataPage />} />
                     <Route path='/blog' element={<BlogPage />} />
                     <Route path='/faq' element={<FaqPage />} />
                     <Route path='/blogdetails/:id' element={<BlogDetails />} />

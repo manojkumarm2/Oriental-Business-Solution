@@ -1,0 +1,74 @@
+his wiki summarizes the technical architecture and troubleshooting steps finalized for the Oriental Biz Solutions portal. It serves as a reference for maintaining the connection between the React frontend and the Python/Flask backend on a GoDaddy/cPanel environment.
+
+Project Wiki: Oriental Biz Portal Integration
+1. System Architecture
+The application uses a decoupled architecture hosted on a single domain using Apache mod_rewrite to manage traffic distribution.
+
+Frontend: React Single Page Application (SPA).
+
+Backend: Python 3.11 / Flask API.
+
+Database: SQLite (obs_db.db) located in the API subdirectory.
+
+Orchestration: CloudLinux Passenger (Python Selector) and Apache.
+
+2. Directory Structure
+The backend and database are isolated in a subfolder to prevent conflict with the React build files.
+
+Plaintext
+/public_html/
+├── orientalbiz.ca/              # Root domain folder
+│   ├── build/                   # React static assets
+│   ├── index.html               # React entry point
+│   ├── .htaccess                # Traffic routing rules
+│   └── orientalbiz_api/         # API Directory
+│       ├── app.py               # Flask application logic
+│       ├── passenger_wsgi.py    # Python entry point
+│       └── obs_db.db            # SQLite database file
+3. Configuration Files
+.htaccess (The Traffic Controller)
+This file ensures that /api requests are handled by Python, while all other requests are routed to the React SPA.
+
+Apache
+RewriteEngine On
+
+# 1. Forward all /api requests to Python
+RewriteCond %{REQUEST_URI} ^/api [NC]
+RewriteRule ^(.*)$ passenger_wsgi.py/$1 [QSA,L]
+
+# 2. Serve physical files (Images/JS/CSS)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# 3. React SPA Routing (Excludes API to prevent HTML fallbacks)
+RewriteCond %{REQUEST_URI} !^/api [NC]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
+passenger_wsgi.py (The Bridge)
+A simplified entry point optimized for the GoDaddy environment.
+
+Python
+import sys, os
+sys.path.insert(0, os.path.dirname(__file__))
+from app import application
+4. Database Management
+Pathing: The app uses absolute pathing to prevent Passenger from creating empty databases in the home directory.
+
+Python
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(BASE_DIR, 'obs_db.db')
+Permissions: The database file requires 664 or 666 permissions to allow the web server to create necessary .db-journal lock files.
+
+Persistence: Always ensure connection.commit() is called after data imports to write changes to the disk.
+
+5. Troubleshooting Protocol
+If the API returns HTML instead of JSON:
+
+Check .htaccess: Ensure the !^/api exclusion is present in the React rule.
+
+Restart via cPanel: Go to Setup Python App and click Restart to clear the Passenger cache.
+
+Check DB Size: Use SSH (ls -lh obs_db.db) to ensure the file is larger than 12KB (indicating it is not empty).
+
+Verify Table: Run sqlite3 obs_db.db "SELECT COUNT(*) FROM customers;" to confirm records are committed.
