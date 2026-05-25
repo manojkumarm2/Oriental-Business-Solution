@@ -7,6 +7,7 @@ const DataPageHeader = ({ title, description, account, onLogin, onLogout }) => {
   const navItems = [
     { to: '/customerData', label: 'Personal Tax' },
     { to: '/corporateData', label: 'Corporate Tax' },
+    { to: '/cvitp', label: 'CVITP' },
   ];
 
   const rawUserName = account?.username || account?.name || 'User';

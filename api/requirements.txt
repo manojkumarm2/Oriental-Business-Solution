@@ -6,3 +6,5 @@ gunicorn==21.2.0
 msal==1.26.0
 python-jose[cryptography]==3.3.0
 requests==2.31.0
+azure-communication-identity>=1.4.0
+azure-communication-callautomation>=1.1.0

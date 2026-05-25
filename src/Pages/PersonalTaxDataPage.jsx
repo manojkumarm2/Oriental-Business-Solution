@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
 import { msalConfig, loginRequest, getApiUrl, getRawDateString, getUsersEmail, isAdminRole } from '../authConfig';
@@ -114,6 +115,7 @@ const compareDueDates = (a, b) => {
 
 const PersonalTaxDataPage = () => {
   const [isInitialized, setIsInitialized] = useState(false);
+  const navigate = useNavigate();
   const [account, setAccount] = useState(null);
   const [customers, setCustomers] = useState([]);
   const [error, setError] = useState('');
@@ -170,16 +172,19 @@ const PersonalTaxDataPage = () => {
   }, [msalInstance]);
 
   useEffect(() => {
-    if (account) {
+    if (account && isInitialized) {
       fetchCustomers();
     }
-  }, [account]);
+  }, [account, isInitialized]);
 
   const fetchCustomers = async () => {
     setLoading(true);
     setError('');
     setMessage('');
     try {
+      if (typeof msalInstance.initialize === 'function') {
+        await msalInstance.initialize();
+      }
       const tokenResponse = await msalInstance.acquireTokenSilent({
         ...loginRequest,
         account,
@@ -265,6 +270,9 @@ const PersonalTaxDataPage = () => {
     };
 
     try {
+      if (typeof msalInstance.initialize === 'function') {
+        await msalInstance.initialize();
+      }
       const tokenResponse = await msalInstance.acquireTokenSilent({
         ...loginRequest,
         account,
@@ -300,6 +308,9 @@ const PersonalTaxDataPage = () => {
     setMessage('');
 
     try {
+      if (typeof msalInstance.initialize === 'function') {
+        await msalInstance.initialize();
+      }
       const tokenResponse = await msalInstance.acquireTokenSilent({
         ...loginRequest,
         account,
@@ -369,6 +380,9 @@ const PersonalTaxDataPage = () => {
     setMessage('');
 
     try {
+      if (typeof msalInstance.initialize === 'function') {
+        await msalInstance.initialize();
+      }
       const tokenResponse = await msalInstance.acquireTokenSilent({
         ...loginRequest,
         account,
@@ -408,6 +422,9 @@ const PersonalTaxDataPage = () => {
     setMessage('');
 
     try {
+      if (typeof msalInstance.initialize === 'function') {
+        await msalInstance.initialize();
+      }
       const tokenResponse = await msalInstance.acquireTokenSilent({
         ...loginRequest,
         account,
@@ -992,7 +1009,7 @@ const PersonalTaxDataPage = () => {
       {account ? (
         <>
           <div className="row g-3 mb-4">
-            <div className="col-md-4">
+            <div className="col-md-6">
               <div className="card data-summary-card h-100 p-3">
                 <div className="d-flex align-items-center justify-content-between mb-3">
                   <div>
@@ -1004,7 +1021,7 @@ const PersonalTaxDataPage = () => {
                 <p className="mb-0 text-muted">Only non-completed records are displayed in the table.</p>
               </div>
             </div>
-            <div className="col-md-4">
+            <div className="col-md-6">
               <div className="card data-summary-card h-100 p-3">
                 <div className="d-flex align-items-center justify-content-between mb-3">
                   <div>
@@ -1016,7 +1033,7 @@ const PersonalTaxDataPage = () => {
                 <p className="mb-0 text-muted">Completed records out of total loaded customers.</p>
               </div>
             </div>
-            <div className="col-md-4 text-md-end d-flex flex-column justify-content-end">
+            <div className="col-12 text-md-end">
               <button className="btn btn-primary btn-lg px-4" onClick={handleOpenAddModal}>
                 Add Customer
               </button>

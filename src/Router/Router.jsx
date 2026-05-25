@@ -8,6 +8,7 @@ import BlogPage from '../Pages/BlogPage';
 import FaqPage from '../Pages/FaqPage';
 import ServiceDetailsPages from '../Pages/ServiceDetailsPages';
 import BlogDetails from "../components/BlogDetails/BlogDetails";
+import CvitpPage from '../Pages/CvitpPage';
 import FtcfPage from '../Pages/FtcfPage';
 import PersonalTaxDataPage from '../Pages/PersonalTaxDataPage';
 import CorporateTaxDataPage from '../Pages/CorporateTaxDataPage';
@@ -26,6 +27,7 @@ const Router = () => {
                     <Route path='/contact' element={<ContactPage />} />
                     <Route path='/free-tax-clinic-form' element={<FtcfPage />} />
                     <Route path='/customerData' element={<PersonalTaxDataPage />} />
+                    <Route path='/cvitp' element={<CvitpPage />} />
                     <Route path='/corporateData' element={<CorporateTaxDataPage />} />
                     <Route path='/blog' element={<BlogPage />} />
                     <Route path='/faq' element={<FaqPage />} />
