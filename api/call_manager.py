@@ -27,7 +27,7 @@ WELCOME_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10
 # Played to callers who dial in after hours or during weekends
 UNAVAILABLE_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
     <voice name="en-CA-LiamNeural">
-        Thank you for calling Oriental Business Solutions. Our Community Volunteer Income Tax Program clinic is currently closed. Our regular operational hours are Monday through Friday, from 9:00 AM to 6:00 PM Eastern Time. Please call back during these hours, and a volunteer agent will be happy to assist you with your tax filing. Thank you, and have a wonderful day.
+        Thank you for calling Oriental Business Solutions. Our Community Volunteer Income Tax Program clinic is currently closed. Our regular operational hours are Monday through Friday, from 9:00 AM to 6:00 PM Eastern Time. Alternatively, you can send an email to cvitp at oriental biz dot c a. Please call back during our regular hours or drop us an email, and a volunteer agent will be happy to assist you with your tax filing. Thank you, and have a wonderful day.
     </voice>
 </speak>"""
 
@@ -35,7 +35,7 @@ UNAVAILABLE_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/200
 HOLD_LOOP_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
     <voice name="en-CA-LiamNeural">
         <break time="4s"/>
-        Thank you for your patience. Please continue to hold while we connect your call to an available CVITP volunteer representative. An agent will be with you shortly.
+        Thank you for your patience. Please continue to hold while we connect your call to an available CVITP volunteer representative. An agent will be with you shortly. If you prefer not to wait, you can also reach our clinic by emailing cvitp at oriental biz dot c a. 
     </voice>
 </speak>"""
 
