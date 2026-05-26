@@ -11,8 +11,8 @@ from dotenv import load_dotenv  # 1. Import load_dotenv
 # 2. Load the environment variables right away
 load_dotenv()
 
-from tax_managers import PersonalTaxManager, CorporateTaxManager, DB_FILE, get_db_connection
-from call_manager import CallManager
+from tax_managers import PersonalTaxManager, CorporateTaxManager, CvitpTaxManager, DB_FILE, get_db_connection
+from call_manager import CallManager, CvitpCallHistoryManager
 
 app = Flask(__name__)
 application = app
@@ -79,16 +79,40 @@ def init_sqlite_db():
                 payrollAvailable TEXT DEFAULT '', payrollDueDate TEXT DEFAULT '', 
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP, updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS cvitpStatus (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                mobile TEXT NOT NULL,
+                status TEXT DEFAULT 'Pending',
+                assignedTo TEXT DEFAULT '',
+                coin TEXT DEFAULT '',
+                receivedDate TEXT DEFAULT '',
+                filledDate TEXT DEFAULT '',
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS cvitpCallHistory (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                number TEXT NOT NULL,
+                type TEXT NOT NULL,
+                time TEXT NOT NULL,
+                status TEXT,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )''')
         cursor.execute('CREATE TABLE IF NOT EXISTS acs_users (email TEXT PRIMARY KEY, acs_user_id TEXT NOT NULL, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP)')
         cursor.execute('CREATE TABLE IF NOT EXISTS bridged_calls (call_id TEXT PRIMARY KEY, loop_count INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)')
         conn.commit()
 
 @app.route('/api/health', methods=['GET'])
+@app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok', 'sqliteConnected': os.path.exists(DB_FILE)})
 
 # --- Personal Tax Routes ---
 @app.route('/api/customers', methods=['GET'])
+@app.route('/customers', methods=['GET'])
 @validate_token
 def get_customers():
     rows = PersonalTaxManager.get_all()
@@ -100,6 +124,7 @@ def get_customers():
     return jsonify(rows)
 
 @app.route('/api/customers', methods=['POST'])
+@app.route('/customers', methods=['POST'])
 @validate_token
 def create_customer():
     try:
@@ -109,6 +134,7 @@ def create_customer():
         return jsonify({'message': str(e)}), 400
 
 @app.route('/api/customers/<customer_id>', methods=['PUT'])
+@app.route('/customers/<customer_id>', methods=['PUT'])
 @validate_token
 def update_customer(customer_id):
     if PersonalTaxManager.update(customer_id, request.get_json()):
@@ -116,6 +142,7 @@ def update_customer(customer_id):
     return jsonify({'message': 'Customer not found'}), 404
 
 @app.route('/api/customers/<customer_id>', methods=['DELETE'])
+@app.route('/customers/<customer_id>', methods=['DELETE'])
 @validate_token
 def delete_customer(customer_id):
     if g.user_email not in ADMIN_EMAILS:
@@ -126,6 +153,7 @@ def delete_customer(customer_id):
 
 # --- Corporate Tax Routes ---
 @app.route('/api/corporate', methods=['GET'])
+@app.route('/corporate', methods=['GET'])
 @validate_token
 def get_corporate():
     rows = CorporateTaxManager.get_all()
@@ -140,6 +168,7 @@ def get_corporate():
     return jsonify(filtered)
 
 @app.route('/api/corporate', methods=['POST'])
+@app.route('/corporate', methods=['POST'])
 @validate_token
 def create_corporate():
     try:
@@ -149,6 +178,7 @@ def create_corporate():
         return jsonify({'message': str(e)}), 400
 
 @app.route('/api/corporate/<corporate_id>', methods=['PUT'])
+@app.route('/corporate/<corporate_id>', methods=['PUT'])
 @validate_token
 def update_corporate(corporate_id):
     if CorporateTaxManager.update(corporate_id, request.get_json()):
@@ -156,6 +186,7 @@ def update_corporate(corporate_id):
     return jsonify({'message': 'Record not found'}), 404
 
 @app.route('/api/corporate/<corporate_id>', methods=['DELETE'])
+@app.route('/corporate/<corporate_id>', methods=['DELETE'])
 @validate_token
 def delete_corporate(corporate_id):
     if g.user_email not in ADMIN_EMAILS:
@@ -164,25 +195,88 @@ def delete_corporate(corporate_id):
         return jsonify({'message': 'Deleted successfully'})
     return jsonify({'message': 'Not found'}), 404
 
+# --- CVITP Tax Status Routes ---
+
+@app.route('/api/cvitp', methods=['POST'])
+@app.route('/cvitp', methods=['POST'])
+@validate_token
+def create_cvitp_entry():
+    """Create a new CVITP status entry"""
+    try:
+        entry_id = CvitpTaxManager.create(request.get_json())
+        return jsonify({'id': entry_id, 'status': 'created'}), 201
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'message': 'Server error handling record creation.', 'error': str(e)}), 500
+
+@app.route('/api/cvitp', methods=['GET'])
+@app.route('/cvitp', methods=['GET'])
+@validate_token
+def get_cvitp_entries():
+    """Retrieve all CVITP status entries"""
+    return jsonify(CvitpTaxManager.get_all()), 200
+
+
+@app.route('/api/cvitp/<entry_id>', methods=['PUT'])
+@app.route('/cvitp/<entry_id>', methods=['PUT'])
+@validate_token
+def update_cvitp_entry(entry_id):
+    """Update an existing CVITP status entry by id"""
+    try:
+        if CvitpTaxManager.update(entry_id, request.get_json()):
+            return jsonify({'status': 'updated'}), 200
+        return jsonify({'message': 'CVITP entry record not found'}), 404
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'message': 'Server error handling record update.', 'error': str(e)}), 500
+
 # --- Call Management Routes ---
 @app.route('/api/acs/token', methods=['GET'])
+@app.route('/acs/token', methods=['GET'])
 @validate_token
 def get_acs_token():
     return jsonify(CallManager.get_acs_token_for_user(g.user_email))
 
 @app.route('/api/incomingCall', methods=['POST'])
+@app.route('/incomingCall', methods=['POST'])
 def incoming_call():
     response = CallManager.handle_incoming_webhook(request.get_json(force=True), request.url_root)
     return jsonify(response), 200
 
 @app.route("/api/callback", methods=["POST"])
+@app.route("/callback", methods=["POST"])
 def call_callback():
     CallManager.handle_lifecycle_callback(request.json)
     return jsonify({"status": "success"}), 200
 
 @app.route('/api/call-status/<path:phone_number>', methods=['GET'])
+@app.route('/call-status/<path:phone_number>', methods=['GET'])
 def get_call_status(phone_number):
     return jsonify({"is_answered": CallManager.get_answered_status(phone_number)}), 200
+
+@app.route('/api/cvitp/call-history', methods=['GET'])
+@app.route('/cvitp/call-history', methods=['GET'])
+@validate_token
+def get_cvitp_call_history():
+    try:
+        logs = CvitpCallHistoryManager.get_history()
+        return jsonify(logs), 200
+    except Exception as e:
+        return jsonify({'message': 'Failed retrieving communication logs.', 'error': str(e)}), 500
+
+@app.route('/api/cvitp/call-history', methods=['POST'])
+@app.route('/cvitp/call-history', methods=['POST'])
+@validate_token
+def create_cvitp_call_log():
+    try:
+        log_id = CvitpCallHistoryManager.log_call(request.get_json())
+        return jsonify({'id': log_id, 'status': 'logged'}), 201
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'message': 'Failed archiving communication metric.', 'error': str(e)}), 500
 
 @app.errorhandler(500)
 def handle_error(error):

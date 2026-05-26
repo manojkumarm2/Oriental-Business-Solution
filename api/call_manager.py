@@ -2,15 +2,42 @@ import os
 import json
 import sqlite3
 import urllib.parse
+import pytz
+from datetime import datetime, timedelta
 from tax_managers import DB_FILE, get_db_connection
 
 try:
     from azure.communication.identity import CommunicationIdentityClient, CommunicationUserIdentifier
-    from azure.communication.callautomation import CallAutomationClient, TextSource, SsmlSource
+    from azure.communication.callautomation import CallAutomationClient, SsmlSource
 except ImportError:
     pass
 
 ACS_CONNECTION_STRING = os.getenv('ACS_CONNECTION_STRING')
+# =====================================================================
+# GLOBAL ACS AUDIO ANNOUNCEMENTS (SSML FORMAT)
+# =====================================================================
+
+# Played to callers who dial in between 9:00 AM and 6:00 PM EST, Monday to Friday
+WELCOME_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+    <voice name="en-CA-LiamNeural">
+        Welcome to Oriental Business Solutions. Thank you for contacting our Community Volunteer Income Tax Program clinic. Please remain on the line while we connect your call to one of our available volunteer agents.
+    </voice>
+</speak>"""
+
+# Played to callers who dial in after hours or during weekends
+UNAVAILABLE_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+    <voice name="en-CA-LiamNeural">
+        Thank you for calling Oriental Business Solutions. Our Community Volunteer Income Tax Program clinic is currently closed. Our regular operational hours are Monday through Friday, from 9:00 AM to 6:00 PM Eastern Time. Please call back during these hours, and a volunteer agent will be happy to assist you with your tax filing. Thank you, and have a wonderful day.
+    </voice>
+</speak>"""
+
+# Played repeatedly while the customer is waiting for an agent to accept the call leg
+HOLD_LOOP_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+    <voice name="en-CA-LiamNeural">
+        <break time="4s"/>
+        Thank you for your patience. Please continue to hold while we connect your call to an available CVITP volunteer representative. An agent will be with you shortly.
+    </voice>
+</speak>"""
 
 class CallManager:
     @staticmethod
@@ -19,6 +46,21 @@ class CallManager:
             return None
         digits = "".join([c for c in str(raw_number) if c.isdigit()])
         return f"+{digits}"
+
+    @staticmethod
+    def is_business_hours():
+        """Returns True if current time is Mon-Fri, 9:00 AM - 6:00 PM EST"""
+        est_timezone = pytz.timezone('US/Eastern')
+        now_est = datetime.now(est_timezone)
+        
+        # 0 = Monday, 4 = Friday, 5 = Saturday, 6 = Sunday
+        weekday = now_est.weekday()
+        hour = now_est.hour
+        
+        # Check if weekday (Mon-Fri) and between 9 AM and 6 PM (exclusive of 18:00+)
+        if 0 <= weekday <= 4 and 9 <= hour < 18:
+            return True
+        return False
 
     @classmethod
     def get_acs_token_for_user(cls, user_email):
@@ -107,17 +149,57 @@ class CallManager:
                 continue
 
             if event_type == "Microsoft.Communication.CallConnected":
-                welcome_text = "Welcome to Oriental Business Solutions. Please wait, our team will be connecting with you soon."
-                play_source = TextSource(text=welcome_text, voice_name="en-CA-LiamNeural")
-                try:
-                    call_connection_client = call_automation_client.get_call_connection(call_connection_id)
-                    call_connection_client.play_media_to_all(play_source=play_source, operation_context="WelcomePlay")
-                except Exception as e:
-                    print(f"Error streaming payload: {e}")
+                print(f"📞 Call Connected Event for Connection: {call_connection_id}")
+    
+                # 1. Run the time calculation live right here
+                is_open = cls.is_business_hours()
+                
+                if not is_open:
+                    print(f"🌙 After-Hours detected. Playing unavailable greeting for connection: {call_connection_id}")
+                    
+                    try:
+                        call_connection_client = call_automation_client.get_call_connection(call_connection_id)
+                        call_connection_client.play_media_to_all(
+                            play_source=SsmlSource(ssml_text=UNAVAILABLE_ANNOUNCEMENT), 
+                            operation_context="UnavailablePlay"
+                        )
+                    except Exception as e:
+                        print(f"Error streaming away audio: {e}")
+                        
+                else:
+                    print(f"☀️ Business hours active. Saving connection state and playing welcome loop.")
+                    
+                    # 2. ONLY write to the database if the business is open, to manage the active agent hold loops
+                    if call_connection_id:
+                        with sqlite3.connect(DB_FILE) as conn:
+                            cursor = conn.cursor()
+                            cursor.execute("INSERT OR REPLACE INTO bridged_calls (call_id, loop_count) VALUES (?, 0)", (call_connection_id, 0))
+                            conn.commit()
+
+                    welcome_text = WELCOME_ANNOUNCEMENT
+                    play_source = SsmlSource(ssml_text=welcome_text)
+                    try:
+                        call_connection_client = call_automation_client.get_call_connection(call_connection_id)
+                        call_connection_client.play_media_to_all(play_source=play_source, operation_context="WelcomePlay")
+                    except Exception as e:
+                        print(f"Error streaming welcome payload: {e}")
 
             elif event_type == "Microsoft.Communication.PlayCompleted":
                 op_context = data.get("operationContext")
-                if op_context == "WelcomePlay":
+                if op_context == "UnavailablePlay":
+                    print(f"🚪 After-hours announcement finished for {call_connection_id}. Disconnecting line cleanly...")
+                    try:
+                        call_connection_client = call_automation_client.get_call_connection(call_connection_id)
+                        # Setting is_for_everyone=True tears down the entire conference leg immediately
+                        call_connection_client.hang_up(is_for_everyone=True)
+                        print(f"✅ Successfully terminated call room session: {call_connection_id}")
+                    except Exception as e:
+                        print(f"Error performing after-hours disconnect: {e}")
+                        
+                    continue  # Move to the next event safely
+
+                # --- YOUR EXISTING BUSINESS HOURS LOGIC ---
+                elif op_context == "WelcomePlay":
                     # Invite Agents
                     try:
                         dev_emails_str = os.getenv('DEV_AGENT_EMAIL', '')
@@ -140,12 +222,7 @@ class CallManager:
                     try:
                         call_connection_client = call_automation_client.get_call_connection(call_connection_id)
                         hold_announcement = SsmlSource(
-                            ssml_text=r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-                                <voice name="en-CA-LiamNeural">
-                                    <break time="2s"/>
-                                    Please hold while we connect your call to an available representative.
-                                </voice>
-                            </speak>"""
+                            ssml_text=HOLD_LOOP_ANNOUNCEMENT
                         )
                         call_connection_client.play_media_to_all(play_source=hold_announcement, operation_context="HoldLoop")
                     except Exception as media_err:
@@ -163,12 +240,7 @@ class CallManager:
                     try:
                         call_connection_client = call_automation_client.get_call_connection(call_connection_id)
                         hold_announcement = SsmlSource(
-                            ssml_text=r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-                                <voice name="en-CA-LiamNeural">
-                                    <break time="2s"/>
-                                    Thank you for your patience. A volunteer agent will be with you shortly.
-                                </voice>
-                            </speak>"""
+                            ssml_text=HOLD_LOOP_ANNOUNCEMENT
                         )
                         call_connection_client.play_media_to_all(play_source=hold_announcement, operation_context="HoldLoop")
                     except Exception:
@@ -223,3 +295,42 @@ class CallManager:
             cursor.execute("SELECT loop_count FROM bridged_calls WHERE call_id = ?", (clean_phone_key,))
             row = cursor.fetchone()
         return (row and row['loop_count'] == -1)
+    
+class CvitpCallHistoryManager:
+    @staticmethod
+    def log_call(data):
+        # Destructure parameters securely from the UI payload
+        number = data.get('number')
+        call_type = data.get('type')  # 'incoming' or 'outgoing'
+        status = data.get('status')
+        time_logged = data.get('time', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+        if not number or not call_type:
+            raise ValueError("Missing critical communication logging parameters.")
+
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            
+            # 1. Insert the new active interaction payload
+            cursor.execute("""
+                INSERT INTO cvitpCallHistory (number, type, time, status)
+                VALUES (?, ?, ?, ?)
+            """, (number, call_type, time_logged, status))
+            
+            # 2. Housekeeping Pipeline: Atomically purge records older than 7 days
+            seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute("DELETE FROM cvitpCallHistory WHERE CreatedAt < ?", (seven_days_ago,))
+            
+            conn.commit()
+            return cursor.lastrowid
+
+    @staticmethod
+    def get_history():
+        with sqlite3.connect(DB_FILE) as conn:
+            # Reusing your dict_factory mapping for clean frontend serialization
+            conn.row_factory = lambda cursor, row: {
+                col[0]: row[idx] for idx, col in enumerate(cursor.description)
+            }
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM cvitpCallHistory ORDER BY id DESC")
+            return cursor.fetchall()

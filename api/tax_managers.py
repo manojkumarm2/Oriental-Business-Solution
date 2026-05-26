@@ -179,3 +179,61 @@ class CorporateTaxManager:
             cursor.execute("DELETE FROM corporate WHERE id = ?", (int(corporate_id),))
             conn.commit()
             return cursor.rowcount > 0
+        
+    
+class CvitpTaxManager:
+    @staticmethod
+    def create(data):
+        name = data.get('name')
+        mobile = data.get('mobile')
+        if not name or not mobile:
+            raise ValueError("Name and mobile number are required.")
+            
+        cvitp_data = (
+            name,
+            mobile,
+            data.get('status', 'Pending'),
+            data.get('assignedTo', ''),
+            data.get('coin', ''),
+            data.get('receivedDate', ''),
+            data.get('filledDate', '')
+        )
+        
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO cvitpStatus (
+                    name, mobile, status, assignedTo, coin, receivedDate, filledDate
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, cvitp_data)
+            conn.commit()
+            return cursor.lastrowid
+
+    @staticmethod
+    def get_all():
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM cvitpStatus ORDER BY createdAt DESC")
+            return cursor.fetchall()
+
+    @staticmethod
+    def update(entry_id, updates):
+        allowed_fields = [
+            'name', 'mobile', 'status', 'assignedTo', 'coin', 'receivedDate', 'filledDate'
+        ]
+        filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
+        if not filtered_updates:
+            raise ValueError("No valid fields provided for update.")
+            
+        set_parts = [f"{k} = ?" for k in filtered_updates.keys()]
+        values = list(filtered_updates.values()) + [int(entry_id)]
+        
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                UPDATE cvitpStatus 
+                SET {', '.join(set_parts)}, updatedAt = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            """, values)
+            conn.commit()
+            return cursor.rowcount > 0
