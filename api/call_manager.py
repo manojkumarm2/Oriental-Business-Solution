@@ -17,21 +17,18 @@ ACS_CONNECTION_STRING = os.getenv('ACS_CONNECTION_STRING')
 # GLOBAL ACS AUDIO ANNOUNCEMENTS (SSML FORMAT)
 # =====================================================================
 
-# Played to callers who dial in between 9:00 AM and 6:00 PM EST, Monday to Friday
 WELCOME_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
     <voice name="en-CA-LiamNeural">
         Welcome to Oriental Business Solutions. Thank you for contacting our Community Volunteer Income Tax Program clinic. Please remain on the line while we connect your call to one of our available volunteer agents.
     </voice>
 </speak>"""
 
-# Played to callers who dial in after hours or during weekends
 UNAVAILABLE_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
     <voice name="en-CA-LiamNeural">
         Thank you for calling Oriental Business Solutions. Our Community Volunteer Income Tax Program clinic is currently closed. Our regular operational hours are Monday through Friday, from 9:00 AM to 6:00 PM Eastern Time. Alternatively, you can send an email to cvitp at oriental biz dot c a. Please call back during our regular hours or drop us an email, and a volunteer agent will be happy to assist you with your tax filing. Thank you, and have a wonderful day.
     </voice>
 </speak>"""
 
-# Played repeatedly while the customer is waiting for an agent to accept the call leg
 HOLD_LOOP_ANNOUNCEMENT = r"""<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
     <voice name="en-CA-LiamNeural">
         <break time="4s"/>
@@ -52,12 +49,8 @@ class CallManager:
         """Returns True if current time is Mon-Fri, 9:00 AM - 6:00 PM EST"""
         est_timezone = pytz.timezone('US/Eastern')
         now_est = datetime.now(est_timezone)
-        
-        # 0 = Monday, 4 = Friday, 5 = Saturday, 6 = Sunday
         weekday = now_est.weekday()
         hour = now_est.hour
-        
-        # Check if weekday (Mon-Fri) and between 9 AM and 6 PM (exclusive of 18:00+)
         if 0 <= weekday <= 4 and 9 <= hour < 18:
             return True
         return False
@@ -116,7 +109,6 @@ class CallManager:
                     if callback_url.startswith("http://"):
                         callback_url = callback_url.replace("http://", "https://", 1)
                         
-                    # Save temporary caller map data link natively to DB row state tracking
                     with sqlite3.connect(DB_FILE) as conn:
                         cursor = conn.cursor()
                         cursor.execute("INSERT OR REPLACE INTO bridged_calls (call_id, loop_count) VALUES (?, 0)", (caller_number,))
@@ -143,20 +135,15 @@ class CallManager:
             event_type = event.get("type") or event.get("eventType")
             data = event.get("data", {})
             call_connection_id = data.get("callConnectionId")
-            print(f"📊 [AZURE EVENT RECIEVED]: {event_type} for Connection: {call_connection_id}")
+            print(f"📊 [AZURE EVENT RECEIVED]: {event_type} for Connection: {call_connection_id}")
 
             if not call_connection_id:
                 continue
 
             if event_type == "Microsoft.Communication.CallConnected":
-                print(f"📞 Call Connected Event for Connection: {call_connection_id}")
-    
-                # 1. Run the time calculation live right here
                 is_open = cls.is_business_hours()
                 
                 if not is_open:
-                    print(f"🌙 After-Hours detected. Playing unavailable greeting for connection: {call_connection_id}")
-                    
                     try:
                         call_connection_client = call_automation_client.get_call_connection(call_connection_id)
                         call_connection_client.play_media_to_all(
@@ -165,11 +152,7 @@ class CallManager:
                         )
                     except Exception as e:
                         print(f"Error streaming away audio: {e}")
-                        
                 else:
-                    print(f"☀️ Business hours active. Saving connection state and playing welcome loop.")
-                    
-                    # 2. ONLY write to the database if the business is open, to manage the active agent hold loops
                     if call_connection_id:
                         with sqlite3.connect(DB_FILE) as conn:
                             cursor = conn.cursor()
@@ -187,20 +170,14 @@ class CallManager:
             elif event_type == "Microsoft.Communication.PlayCompleted":
                 op_context = data.get("operationContext")
                 if op_context == "UnavailablePlay":
-                    print(f"🚪 After-hours announcement finished for {call_connection_id}. Disconnecting line cleanly...")
                     try:
                         call_connection_client = call_automation_client.get_call_connection(call_connection_id)
-                        # Setting is_for_everyone=True tears down the entire conference leg immediately
                         call_connection_client.hang_up(is_for_everyone=True)
-                        print(f"✅ Successfully terminated call room session: {call_connection_id}")
                     except Exception as e:
                         print(f"Error performing after-hours disconnect: {e}")
-                        
-                    continue  # Move to the next event safely
+                    continue 
 
-                # --- YOUR EXISTING BUSINESS HOURS LOGIC ---
                 elif op_context == "WelcomePlay":
-                    # Invite Agents
                     try:
                         dev_emails_str = os.getenv('DEV_AGENT_EMAIL', '')
                         if dev_emails_str:
@@ -218,73 +195,77 @@ class CallManager:
                     except Exception as e:
                         print(f"Agent invite loop error: {e}")
 
-                    # Play Hold Loop
                     try:
                         call_connection_client = call_automation_client.get_call_connection(call_connection_id)
-                        hold_announcement = SsmlSource(
-                            ssml_text=HOLD_LOOP_ANNOUNCEMENT
-                        )
+                        hold_announcement = SsmlSource(ssml_text=HOLD_LOOP_ANNOUNCEMENT)
                         call_connection_client.play_media_to_all(play_source=hold_announcement, operation_context="HoldLoop")
                     except Exception as media_err:
                         print(f"Failed hold text: {media_err}")
 
                 elif op_context == "HoldLoop":
-                    # DB State fallback validation checks
+                    # DB State boundary validation checks
                     with get_db_connection() as conn:
                         cursor = conn.cursor()
-                        cursor.execute("SELECT loop_count FROM bridged_calls WHERE loop_count = -1")
-                        answered_globally = cursor.fetchone()
-                    if answered_globally:
+                        cursor.execute("SELECT loop_count FROM bridged_calls WHERE call_id = ?", (call_connection_id,))
+                        row = cursor.fetchone()
+                    
+                    # Stop looping if the flag indicates an agent accepted the incoming leg
+                    if row and row['loop_count'] == -1:
+                        print(f"🛑 HoldLoop completed but call {call_connection_id} was answered. Breaking audio loop.")
                         continue
                         
                     try:
                         call_connection_client = call_automation_client.get_call_connection(call_connection_id)
-                        hold_announcement = SsmlSource(
-                            ssml_text=HOLD_LOOP_ANNOUNCEMENT
-                        )
+                        hold_announcement = SsmlSource(ssml_text=HOLD_LOOP_ANNOUNCEMENT)
                         call_connection_client.play_media_to_all(play_source=hold_announcement, operation_context="HoldLoop")
                     except Exception:
                         pass
 
             elif event_type == "Microsoft.Communication.ParticipantsUpdated":
-                    participants = data.get("participants", [])
-                    
-                    # If there are no participants left, or only 1 agent remains alone, kill the room
-                    if len(participants) <= 1:
-                        print(f"⚠️ Roster updated: {len(participants)} participants left. Empty call. Forcing hang up...")
-                        try:
-                            call_connection_client = call_automation_client.get_call_connection(call_connection_id)
-                            call_connection_client.hang_up(is_for_everyone=True)
-                        except Exception:
-                            pass
-                        continue
-
-                # --- UNIFIED DISCONNECT BLOCK ---
-            elif event_type in [
-                    "Microsoft.Communication.CallDisconnected", 
-                    "Microsoft.Communication.PlayFailed"
-                ]:
-                    print(f"🛑 Clean-up rule triggered by event '{event_type}'")
+                participants = data.get("participants", [])
+                if len(participants) <= 1:
+                    print(f"⚠️ Roster updated: {len(participants)} participants left. Empty call. Forcing hang up...")
                     try:
                         call_connection_client = call_automation_client.get_call_connection(call_connection_id)
                         call_connection_client.hang_up(is_for_everyone=True)
                     except Exception:
                         pass
-                        
-                    try:
-                        with sqlite3.connect(DB_FILE) as conn:
-                            cursor = conn.cursor()
-                            cursor.execute("DELETE FROM bridged_calls WHERE call_id = ? OR loop_count = -1", (call_connection_id,))
-                            conn.commit()
-                    except Exception:
-                        pass
-                    continue    
+                    continue
+
+            elif event_type in ["Microsoft.Communication.CallDisconnected", "Microsoft.Communication.PlayFailed"]:
+                print(f"🛑 Clean-up rule triggered by event '{event_type}'")
+                try:
+                    call_connection_client = call_automation_client.get_call_connection(call_connection_id)
+                    call_connection_client.hang_up(is_for_everyone=True)
+                except Exception:
+                    pass
+                    
+                try:
+                    with sqlite3.connect(DB_FILE) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("DELETE FROM bridged_calls WHERE call_id = ?", (call_connection_id,))
+                        conn.commit()
+                except Exception:
+                    pass
+                continue    
+
             elif event_type == "Microsoft.Communication.AddParticipantSucceeded":
-                # Globally register answer state to stop hold announcements across worker execution bounds
+                print(f"✅ Agent successfully accepted call leg: {call_connection_id}")
+                
+                # 1. Update SQLite parameters state context
                 with sqlite3.connect(DB_FILE) as conn:
                     cursor = conn.cursor()
-                    cursor.execute("UPDATE bridged_calls SET loop_count = -1")
+                    cursor.execute("UPDATE bridged_calls SET loop_count = -1 WHERE call_id = ?", (call_connection_id,))
                     conn.commit()
+
+                # 2. ⚡ FIX: Forcefully stop the active background SSML hold track immediately
+                try:
+                    call_connection_client = call_automation_client.get_call_connection(call_connection_id)
+                    # cancel_all_media_operations explicitly cuts off the current HoldLoop audio
+                    call_connection_client.cancel_all_media_operations()
+                    print(f"🎵 Successfully cleared active hold loops for taxpayer line.")
+                except Exception as media_err:
+                    print(f"Failed stopping background hold stream: {media_err}")
 
     @classmethod
     def get_answered_status(cls, phone_number):
@@ -299,9 +280,8 @@ class CallManager:
 class CvitpCallHistoryManager:
     @staticmethod
     def log_call(data):
-        # Destructure parameters securely from the UI payload
         number = data.get('number')
-        call_type = data.get('type')  # 'incoming' or 'outgoing'
+        call_type = data.get('type')  
         status = data.get('status')
         time_logged = data.get('time', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
@@ -310,24 +290,19 @@ class CvitpCallHistoryManager:
 
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
-            
-            # 1. Insert the new active interaction payload
             cursor.execute("""
                 INSERT INTO cvitpCallHistory (number, type, time, status)
                 VALUES (?, ?, ?, ?)
             """, (number, call_type, time_logged, status))
             
-            # 2. Housekeeping Pipeline: Atomically purge records older than 7 days
             seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute("DELETE FROM cvitpCallHistory WHERE CreatedAt < ?", (seven_days_ago,))
-            
             conn.commit()
             return cursor.lastrowid
 
     @staticmethod
     def get_history():
         with sqlite3.connect(DB_FILE) as conn:
-            # Reusing your dict_factory mapping for clean frontend serialization
             conn.row_factory = lambda cursor, row: {
                 col[0]: row[idx] for idx, col in enumerate(cursor.description)
             }
