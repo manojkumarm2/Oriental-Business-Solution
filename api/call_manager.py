@@ -173,7 +173,7 @@ class CallManager:
                     if call_connection_id:
                         with sqlite3.connect(DB_FILE) as conn:
                             cursor = conn.cursor()
-                            cursor.execute("INSERT OR REPLACE INTO bridged_calls (call_id, loop_count) VALUES (?, 0)", (call_connection_id, 0))
+                            cursor.execute("INSERT OR REPLACE INTO bridged_calls (call_id, loop_count) VALUES (?, 0)", (call_connection_id,))
                             conn.commit()
 
                     welcome_text = WELCOME_ANNOUNCEMENT

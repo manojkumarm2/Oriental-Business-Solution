@@ -41,6 +41,7 @@ const CvitpPage = () => {
   const [callHistory, setCallHistory] = useState([]); 
   const [showAllHistory, setShowAllHistory] = useState(false); 
   const [incomingCall, setIncomingCall] = useState(null);
+  const [isRingtoneSilenced, setIsRingtoneSilenced] = useState(false); 
   
   const callAgentRef = useRef(null);
   const callRef = useRef(null);
@@ -53,7 +54,6 @@ const CvitpPage = () => {
     const map = {};
     taxEntries.forEach(entry => {
       if (entry.mobile) {
-        // Strip out country codes, brackets, dashes to capture raw tail-end integers
         const digitsOnly = entry.mobile.replace(/[^0-9]/g, "");
         if (digitsOnly.length >= 10) {
           const tenDigitKey = digitsOnly.slice(-10);
@@ -64,18 +64,80 @@ const CvitpPage = () => {
     return map;
   }, [taxEntries]);
 
+  // --- CVITP NETWORK CARRIER TELEMETRY EXTRACTION UTILITY ---
+const extractPurePhoneNumber = (incomingCallObj) => {
+  if (!incomingCallObj) return "";
+
+  try {
+    // 1. Target the internal WebRTC participants map inside core properties
+    const callCore = incomingCallObj._callCommon || incomingCallObj._call || incomingCallObj;
+    if (callCore) {
+      // Look inside the Map containing raw MRI participant indices keys
+      const pMap = callCore._mriToRemoteParticipantMap || callCore.mriToRemoteParticipantMap;
+      if (pMap && typeof pMap.keys === 'function') {
+        const participantKeys = Array.from(pMap.keys());
+        // Find the specific key tracking a real phone network connection (prefixed with '4:')
+        const phoneKey = participantKeys.find(key => key.startsWith('4:'));
+        if (phoneKey) {
+          return phoneKey.replace("4:", ""); // Returns clean "+16475614226" string
+        }
+      }
+
+      // Fallback: Scan the raw remote participants array structure
+      const pList = callCore._remoteParticipants || callCore.remoteParticipants;
+      if (pList && pList.length > 0) {
+        const foundParticipant = pList.find(p => p.identifier?.phoneNumber || p.identifier?.rawId?.startsWith('4:'));
+        if (foundParticipant) {
+          const rawId = foundParticipant.identifier.phoneNumber || foundParticipant.identifier.rawId;
+          return rawId.replace("4:", "");
+        }
+      }
+    }
+
+    // 2. Fallback: Parse top-level identifier schemas if memory-maps aren't built yet
+    const info = incomingCallObj.callerInfo;
+    const identifierObj = info?.identifier || incomingCallObj.identifier;
+
+    if (identifierObj?.phoneNumber) {
+      return identifierObj.phoneNumber.replace("4:8:acs:", "").replace("4:", "");
+    }
+
+    const rawId = identifierObj?.rawId || "";
+    if (rawId && !rawId.includes("communicationUser")) {
+      return rawId.replace("4:8:acs:", "").replace("4:", "");
+    }
+
+    if (info?.displayName && !info.displayName.includes("acs:")) {
+      return info.displayName;
+    }
+  } catch (err) {
+    console.warn("Telemetry parsing exception dropped:", err);
+  }
+
+  return "Internal VoIP Line"; // Return clean baseline token for internal app-to-app lines
+};
+
   // Helper utility function to translate a history entry number to a client display name
   const resolveCallerIdentity = (rawNumber) => {
     if (!rawNumber) return "Unknown Caller";
+    
+    if (rawNumber === "Internal VoIP Line" || rawNumber === "Internal Call") {
+      return "Internal Staff Representative";
+    }
+
     const cleanDigits = rawNumber.replace(/[^0-9]/g, "");
     if (cleanDigits.length >= 10) {
       const tenDigitKey = cleanDigits.slice(-10);
       if (taxpayerPhoneMap[tenDigitKey]) {
-        return taxpayerPhoneMap[tenDigitKey]; // Match verified successfully!
+        return taxpayerPhoneMap[tenDigitKey];
       }
     }
-    return rawNumber; // Fallback to displaying raw string index if unmapped
+    return rawNumber;
   };
+
+const currentIncomingPhone = useMemo(() => {
+    return extractPurePhoneNumber(incomingCall);
+  }, [incomingCall]);
 
   // Computed slice for the communications sub-card layout view
   const displayedHistory = useMemo(() => {
@@ -114,6 +176,7 @@ const CvitpPage = () => {
   };
 
   const handleLogCallToDatabase = async (number, type, status, customTime = null) => {
+    if (!number || number === "Internal VoIP Line") return; 
     try {
       const tokenResponse = await msalInstance.acquireTokenSilent({ ...loginRequest, account });
       const payload = {
@@ -259,6 +322,14 @@ const CvitpPage = () => {
       ringtoneRef.current.pause();
       ringtoneRef.current.currentTime = 0;
     }
+    setIsRingtoneSilenced(false);
+  };
+
+  const handleSilenceLocalRingtone = () => {
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+    }
+    setIsRingtoneSilenced(true);
   };
 
   const startTimer = () => {
@@ -324,6 +395,7 @@ const CvitpPage = () => {
 
   const handleAcceptCall = async () => {
     if (!incomingCall) return;
+    const activeTargetPhone = currentIncomingPhone; 
     setCallStatus("Answering call...");
     stopRingtone();
     if (syncTimerRef.current) {
@@ -337,10 +409,9 @@ const CvitpPage = () => {
       callRef.current = activeCall;
       setIncomingCall(null);
       setCalling(true);
-      const callerId = incomingCall.callerInfo?.displayName || "Unknown";
       setCallStatus("Call connected");
-      handleLogCallToDatabase(callerId, "incoming", "Connected");
-      attachCallStateHandler(activeCall, callerId, "incoming");
+      handleLogCallToDatabase(activeTargetPhone, "incoming", "Connected");
+      attachCallStateHandler(activeCall, activeTargetPhone, "incoming");
     } catch (err) {
       setCallStatus("Error answering: " + err.message);
       setIncomingCall(null);
@@ -350,12 +421,14 @@ const CvitpPage = () => {
 
   const handleDeclineCall = async () => {
     if (!incomingCall) return;
+    const activeTargetPhone = currentIncomingPhone;
     stopRingtone();
     if (syncTimerRef.current) {
       clearInterval(syncTimerRef.current);
       syncTimerRef.current = null;
     }
     try {
+      handleLogCallToDatabase(activeTargetPhone, "incoming", "Rejected");
       const activeCall = await incomingCall.accept();
       callRef.current = activeCall;
       setIncomingCall(null);
@@ -380,25 +453,94 @@ const CvitpPage = () => {
     setCallStatus("");
   };
 
+  // --- 🛠️ RESTORED ACTION METHOD HANDLERS ---
+  const handleToggleMute = async () => {
+    const call = callRef.current;
+    if (call) {
+      try {
+        if (call.isMuted) {
+          await call.unmute();
+          setIsMuted(false);
+        } else {
+          await call.mute();
+          setIsMuted(true);
+        }
+      } catch (e) { console.error("Mute toggle failed", e); }
+    }
+  };
+
+  const handleToggleHold = async () => {
+    const call = callRef.current;
+    if (call) {
+      try {
+        if (call.state === 'LocalHold') {
+          await call.resume();
+        } else if (call.state === 'Connected') {
+          await call.hold();
+        }
+      } catch (e) { console.error("Hold toggle failed", e); }
+    }
+  };
+
+  const handleLogin = async () => {
+    try { await msalInstance.loginRedirect(loginRequest); } catch (e) { setError(e.message); }
+  };
+
+  const handleLogout = async () => {
+    try { await msalInstance.logoutRedirect({ account }); } catch (e) { setError(e.message); }
+  };
+
   useEffect(() => {
     let disposed = false;
-    const incomingCallHandler = (args) => {
+    const incomingCallHandler = async (args) => {
       if (disposed) return;
       const call = args.incomingCall;
+      
+      // Bind the active payload directly into structure references
+      call.rawPayload = args.rawPayload || args; 
+
+      // 🎯 UTILITY CALL: Instantly fetch identity metadata from memory hooks
+      const displayId = extractPurePhoneNumber(call);
+      console.log("🚀 Extracted Identity Number for History logging loop:", displayId);
+
+      // Introduce a minor window delay checkpoint to sync state rendering smoothly
+      await new Promise(resolve => setTimeout(resolve, 250));
+      if (disposed) return;
+
       setIncomingCall(call);
-      const identifier = call.callerInfo?.identifier;
-      const displayId = identifier?.phoneNumber || identifier?.rawId || call.callerInfo?.displayName || "Unknown Caller";
-      const callerPhoneKey = call.callerInfo?.displayName || "";
+      setIsRingtoneSilenced(false);
 
       stopRingtone();
       ringtoneRef.current.play().catch((err) => console.warn(err));
 
       if ("Notification" in window && Notification.permission === "granted") {
-        const notification = new Notification("Incoming Call - Oriental Biz", { body: `Call from ${displayId}` });
-        notification.onclick = () => { window.focus(); notification.close(); };
+        const resolvedName = resolveCallerIdentity(displayId);
+        const notificationTitle = `🚨 Incoming Clinic Call`;
+        const notificationOptions = {
+          body: `Taxpayer: ${resolvedName}\nLine: ${displayId}`,
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: 'cvitp-incoming-call', 
+          renotify: true,              
+          requireInteraction: true,    
+          silent: false,
+          vibrate: [200, 100, 200, 100, 200]
+        };
+
+        try {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(notificationTitle, notificationOptions);
+          }).catch(() => {
+            const fallbackNotif = new Notification(notificationTitle, notificationOptions);
+            fallbackNotif.onclick = () => { window.focus(); fallbackNotif.close(); };
+          });
+        } catch (err) {
+          const fallbackNotif = new Notification(notificationTitle, notificationOptions);
+          fallbackNotif.onclick = () => { window.focus(); fallbackNotif.close(); };
+        }
       }
 
-      if (call && call.state !== 'Disconnected' && call.state !== 'Connected' && callerPhoneKey) {
+      if (call && call.state !== 'Disconnected' && call.state !== 'Connected' && displayId) {
         if (syncTimerRef.current) clearInterval(syncTimerRef.current);
         syncTimerRef.current = setInterval(async () => {
           if (!call || call.state === 'Disconnected') {
@@ -408,7 +550,7 @@ const CvitpPage = () => {
           }
           try {
             const tokenResponse = await msalInstance.acquireTokenSilent({ ...loginRequest, account });
-            const response = await fetch(getApiUrl(`/api/call-status/${encodeURIComponent(callerPhoneKey)}`), {
+            const response = await fetch(getApiUrl(`/api/call-status/${encodeURIComponent(displayId)}`), {
               headers: { Authorization: `Bearer ${tokenResponse.accessToken}` },
             });
             if (response.ok) {
@@ -427,6 +569,9 @@ const CvitpPage = () => {
 
       call.on('callEnded', () => {
         if (syncTimerRef.current) { clearInterval(syncTimerRef.current); syncTimerRef.current = null; }
+        if (callRef.current === null || call.state === 'Incoming') {
+          handleLogCallToDatabase(displayId, "incoming", "Missed");
+        }
         stopRingtone();
         setIncomingCall(prev => (prev === call ? null : prev));
         setCalling(false);
@@ -470,35 +615,7 @@ const CvitpPage = () => {
       if (syncTimerRef.current) { clearInterval(syncTimerRef.current); syncTimerRef.current = null; }
       if (window.__acsCallAgent) window.__acsCallAgent.off('incomingCall', incomingCallHandler);
     };
-  }, [account, msalInstance, isInitialized]);
-
-  const handleToggleMute = async () => {
-    const call = callRef.current;
-    if (call) {
-      try {
-        if (call.isMuted) { await call.unmute(); setIsMuted(false); } 
-        else { await call.mute(); setIsMuted(true); }
-      } catch (e) { console.error(e); }
-    }
-  };
-
-  const handleToggleHold = async () => {
-    const call = callRef.current;
-    if (call) {
-      try {
-        if (call.state === 'LocalHold') await call.resume();
-        else if (call.state === 'Connected') await call.hold();
-      } catch (e) { console.error(e); }
-    }
-  };
-
-  const handleLogin = async () => {
-    try { await msalInstance.loginRedirect(loginRequest); } catch (e) { setError(e.message); }
-  };
-
-  const handleLogout = async () => {
-    try { await msalInstance.logoutRedirect({ account }); } catch (e) { setError(e.message); }
-  };
+  }, [account, msalInstance, isInitialized, taxpayerPhoneMap]);
 
   return (
     <div className="container-fluid py-4" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
@@ -605,15 +722,61 @@ const CvitpPage = () => {
                 </div>
               </div>
 
-              {/* Right Column: Communications Terminal Hub / Dial Pad */}
-              <div className="col-12 col-xl-4">
+              {/* Right Column: Dialer Terminal and Drawer Box Panel */}
+              <div className="col-12 col-xl-4 position-relative">
+                
+                {/* --- 🔔 DRAWER BOX OVERLAY (DIALER OVERLAY PLACEMENT RESTORED) --- */}
                 {incomingCall && (
-                  <div className="alert alert-warning mb-3 shadow-sm border-0 animate-pulse p-3">
-                    <div className="fw-bold text-dark mb-1">⚠️ Incoming Phone Signal</div>
-                    <span className="text-muted small">Roster ID: {incomingCall.callerInfo?.displayName || "Unknown Caller"}</span>
-                    <div className="mt-3 d-flex gap-2">
-                      <button className="btn btn-success btn-sm flex-grow-1" onClick={handleAcceptCall}>Answer</button>
-                      <button className="btn btn-danger btn-sm flex-grow-1" onClick={handleDeclineCall}>Drop</button>
+                  <div 
+                    className="card border-0 shadow-lg position-absolute w-100 top-0 start-0 h-100 bg-white"
+                    style={{ zIndex: 1100, borderRadius: '12px' }}
+                  >
+                    <div className="text-dark text-center py-3 px-2 rounded-top bg-warning fw-bold">
+                      <div className="fs-3 mb-1">{isRingtoneSilenced ? '🔕' : '⚡'}</div>
+                      <h6 className="fw-black text-uppercase tracking-wider mb-0 small">
+                        {isRingtoneSilenced ? "Line Ringing Silently" : "Incoming Communication Line"}
+                      </h6>
+                    </div>
+                    <div className="card-body p-4 d-flex flex-column justify-content-center text-center">
+                      <div className="mb-3">
+                        <label className="text-uppercase text-muted fs-8 tracking-widest d-block mb-1 fw-bold">Resolved Identity</label>
+                        <h3 className="fw-black text-dark mb-1 text-truncate px-1">
+                          {resolveCallerIdentity(currentIncomingPhone)}
+                        </h3>
+                        <span className="badge bg-light text-muted border font-monospace px-2 py-1 fs-8">
+                          {currentIncomingPhone || "PSTN Call Line"}
+                        </span>
+                      </div>
+                      
+                      <div className="d-flex flex-column gap-2 mt-2 w-100 px-2">
+                        <button 
+                          className="btn btn-success btn-lg py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2 fs-6" 
+                          onClick={handleAcceptCall}
+                          style={{ borderRadius: '10px' }}
+                        >
+                          📞 Connect Call Leg
+                        </button>
+                        
+                        <button 
+                          type="button"
+                          className={`btn py-2 fw-bold border shadow-sm d-flex align-items-center justify-content-center gap-2 fs-7 ${
+                            isRingtoneSilenced ? 'btn-light text-muted' : 'btn-outline-secondary text-dark'
+                          }`}
+                          onClick={handleSilenceLocalRingtone}
+                          disabled={isRingtoneSilenced}
+                          style={{ borderRadius: '10px' }}
+                        >
+                          {isRingtoneSilenced ? "🔕 Ringtone Muted" : "Mute Sound"}
+                        </button>
+
+                        <button 
+                          className="btn btn-danger btn-sm py-2 fw-medium mt-1 fs-7" 
+                          onClick={handleDeclineCall}
+                          style={{ borderRadius: '10px' }}
+                        >
+                          🛑 Decline & Release Line
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -654,7 +817,7 @@ const CvitpPage = () => {
                   )}
                 </div>
 
-                {/* Database-Backed Rolling History Control with Name Translator */}
+                {/* Database-Backed Rolling History Control */}
                 <div className="card border-0 shadow-sm p-3 bg-white">
                   <h6 className="fw-bold text-secondary text-uppercase mb-3 small">Active Session History (7 Days)</h6>
                   <ul className="list-group list-group-flush" style={{ maxHeight: '350px', overflowY: 'auto' }}>
@@ -663,17 +826,18 @@ const CvitpPage = () => {
                       <li key={i} className="list-group-item px-0 d-flex justify-content-between align-items-center border-0 small">
                         <span>
                           {c.type === 'outgoing' ? '📤' : '📥'}{' '}
-                          {/* Dynamically swaps 10-digit clean matches with client names */}
                           <span className="fw-bold text-dark">
                             {resolveCallerIdentity(c.number)}
                           </span>
-                          {/* Include small raw phone subtitle if the number matched a database name */}
                           {resolveCallerIdentity(c.number) !== c.number && (
                             <div className="text-muted" style={{ fontSize: '10px', marginLeft: '24px' }}>{c.number}</div>
                           )}
                         </span>
                         <span className="text-muted text-end" style={{ fontSize: '11px' }}>
-                          {c.status}
+                          <span className={`badge px-1 py-0.5 fs-8 me-1 ${
+                            c.status === 'Connected' || c.status === 'Started' ? 'bg-success-subtle text-success' :
+                            c.status === 'Rejected' || c.status === 'Missed' ? 'bg-danger-subtle text-danger' : 'bg-light text-muted'
+                          }`}>{c.status}</span>
                           <br/>
                           {c.time.includes(',') ? c.time.split(',')[1] : c.time}
                         </span>
@@ -695,10 +859,10 @@ const CvitpPage = () => {
               </div>
             </div>
 
-            {/* --- MULTI-PURPOSE ADD/EDIT BACKDROP MODAL --- */}
+            {/* --- CUSTOMER ADD/EDIT BACKDROP MODAL --- */}
             {showAddModal && (
               <>
-                <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1550 }}>
                   <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content border-0 shadow">
                       <div className="modal-header bg-primary text-white">
@@ -767,14 +931,14 @@ const CvitpPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="modal-backdrop fade show"></div>
+                <div className="modal-backdrop fade show" style={{ zIndex: 1540 }}></div>
               </>
             )}
           </>
         ) : (
           <div className="alert alert-info mt-4 border-0 p-4 shadow-sm">
             <h5 className="fw-bold">🔐 Access Control Boundary</h5>
-            Please sign in using your corporate credentials to connect your client terminal matrix interface safely.
+            Please sign in with your corporate credentials to connect your client terminal matrix interface safely.
           </div>
         )}
       </div>
