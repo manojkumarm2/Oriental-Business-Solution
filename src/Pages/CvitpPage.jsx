@@ -5,6 +5,54 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
 import { msalConfig, loginRequest, getApiUrl } from '../authConfig';
 
+// --- CVITP NETWORK CARRIER TELEMETRY EXTRACTION UTILITY ---
+const extractPurePhoneNumber = (incomingCallObj) => {
+  if (!incomingCallObj) return "";
+
+  try {
+    const callCore = incomingCallObj._callCommon || incomingCallObj._call || incomingCallObj;
+    if (callCore) {
+      const pMap = callCore._mriToRemoteParticipantMap || callCore.mriToRemoteParticipantMap;
+      if (pMap && typeof pMap.keys === 'function') {
+        const participantKeys = Array.from(pMap.keys());
+        const phoneKey = participantKeys.find(key => key.startsWith('4:'));
+        if (phoneKey) {
+          return phoneKey.replace("4:", ""); 
+        }
+      }
+
+      const pList = callCore._remoteParticipants || callCore.remoteParticipants;
+      if (pList && pList.length > 0) {
+        const foundParticipant = pList.find(p => p.identifier?.phoneNumber || p.identifier?.rawId?.startsWith('4:'));
+        if (foundParticipant) {
+          const rawId = foundParticipant.identifier.phoneNumber || foundParticipant.identifier.rawId;
+          return rawId.replace("4:", "");
+        }
+      }
+    }
+
+    const info = incomingCallObj.callerInfo;
+    const identifierObj = info?.identifier || incomingCallObj.identifier;
+
+    if (identifierObj?.phoneNumber) {
+      return identifierObj.phoneNumber.replace("4:8:acs:", "").replace("4:", "");
+    }
+
+    const rawId = identifierObj?.rawId || "";
+    if (rawId && !rawId.includes("communicationUser")) {
+      return rawId.replace("4:8:acs:", "").replace("4:", "");
+    }
+
+    if (info?.displayName && !info.displayName.includes("acs:")) {
+      return info.displayName;
+    }
+  } catch (err) {
+    console.warn("Telemetry parsing exception dropped:", err);
+  }
+
+  return "Internal VoIP Line"; 
+};
+
 const CvitpPage = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [account, setAccount] = useState(null);
@@ -43,6 +91,9 @@ const CvitpPage = () => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [isRingtoneSilenced, setIsRingtoneSilenced] = useState(false); 
   
+  // Tab Navigation Handling Parameter ('dialer' or 'history')
+  const [activeSubTab, setActiveSubTab] = useState('dialer');
+
   const callAgentRef = useRef(null);
   const callRef = useRef(null);
   const ringtoneRef = useRef(null);
@@ -64,59 +115,6 @@ const CvitpPage = () => {
     return map;
   }, [taxEntries]);
 
-  // --- CVITP NETWORK CARRIER TELEMETRY EXTRACTION UTILITY ---
-const extractPurePhoneNumber = (incomingCallObj) => {
-  if (!incomingCallObj) return "";
-
-  try {
-    // 1. Target the internal WebRTC participants map inside core properties
-    const callCore = incomingCallObj._callCommon || incomingCallObj._call || incomingCallObj;
-    if (callCore) {
-      // Look inside the Map containing raw MRI participant indices keys
-      const pMap = callCore._mriToRemoteParticipantMap || callCore.mriToRemoteParticipantMap;
-      if (pMap && typeof pMap.keys === 'function') {
-        const participantKeys = Array.from(pMap.keys());
-        // Find the specific key tracking a real phone network connection (prefixed with '4:')
-        const phoneKey = participantKeys.find(key => key.startsWith('4:'));
-        if (phoneKey) {
-          return phoneKey.replace("4:", ""); // Returns clean "+16475614226" string
-        }
-      }
-
-      // Fallback: Scan the raw remote participants array structure
-      const pList = callCore._remoteParticipants || callCore.remoteParticipants;
-      if (pList && pList.length > 0) {
-        const foundParticipant = pList.find(p => p.identifier?.phoneNumber || p.identifier?.rawId?.startsWith('4:'));
-        if (foundParticipant) {
-          const rawId = foundParticipant.identifier.phoneNumber || foundParticipant.identifier.rawId;
-          return rawId.replace("4:", "");
-        }
-      }
-    }
-
-    // 2. Fallback: Parse top-level identifier schemas if memory-maps aren't built yet
-    const info = incomingCallObj.callerInfo;
-    const identifierObj = info?.identifier || incomingCallObj.identifier;
-
-    if (identifierObj?.phoneNumber) {
-      return identifierObj.phoneNumber.replace("4:8:acs:", "").replace("4:", "");
-    }
-
-    const rawId = identifierObj?.rawId || "";
-    if (rawId && !rawId.includes("communicationUser")) {
-      return rawId.replace("4:8:acs:", "").replace("4:", "");
-    }
-
-    if (info?.displayName && !info.displayName.includes("acs:")) {
-      return info.displayName;
-    }
-  } catch (err) {
-    console.warn("Telemetry parsing exception dropped:", err);
-  }
-
-  return "Internal VoIP Line"; // Return clean baseline token for internal app-to-app lines
-};
-
   // Helper utility function to translate a history entry number to a client display name
   const resolveCallerIdentity = (rawNumber) => {
     if (!rawNumber) return "Unknown Caller";
@@ -135,7 +133,7 @@ const extractPurePhoneNumber = (incomingCallObj) => {
     return rawNumber;
   };
 
-const currentIncomingPhone = useMemo(() => {
+  const currentIncomingPhone = useMemo(() => {
     return extractPurePhoneNumber(incomingCall);
   }, [incomingCall]);
 
@@ -257,6 +255,13 @@ const currentIncomingPhone = useMemo(() => {
     } catch (err) {
       setError("Network error processing customer records.");
     }
+  };
+
+  // Callback mapping logic to handle history interactions seamlessly
+  const handleSelectNumberFromHistory = (targetNumber) => {
+    if (!targetNumber) return;
+    setDialNumber(targetNumber);
+    setActiveSubTab('dialer'); // Switch context display back onto the active dialer row mapping elements
   };
 
   const exportToCSV = () => {
@@ -453,7 +458,6 @@ const currentIncomingPhone = useMemo(() => {
     setCallStatus("");
   };
 
-  // --- 🛠️ RESTORED ACTION METHOD HANDLERS ---
   const handleToggleMute = async () => {
     const call = callRef.current;
     if (call) {
@@ -496,19 +500,15 @@ const currentIncomingPhone = useMemo(() => {
       if (disposed) return;
       const call = args.incomingCall;
       
-      // Bind the active payload directly into structure references
       call.rawPayload = args.rawPayload || args; 
-
-      // 🎯 UTILITY CALL: Instantly fetch identity metadata from memory hooks
-      const displayId = extractPurePhoneNumber(call);
-      console.log("🚀 Extracted Identity Number for History logging loop:", displayId);
-
-      // Introduce a minor window delay checkpoint to sync state rendering smoothly
       await new Promise(resolve => setTimeout(resolve, 250));
       if (disposed) return;
 
       setIncomingCall(call);
       setIsRingtoneSilenced(false);
+      
+      const displayId = extractPurePhoneNumber(call);
+      console.log("🚀 Extracted Identity Number for History logging loop:", displayId);
 
       stopRingtone();
       ringtoneRef.current.play().catch((err) => console.warn(err));
@@ -722,10 +722,10 @@ const currentIncomingPhone = useMemo(() => {
                 </div>
               </div>
 
-              {/* Right Column: Dialer Terminal and Drawer Box Panel */}
+              {/* Right Column: Tabbed Communications Hub Panel Layout */}
               <div className="col-12 col-xl-4 position-relative">
                 
-                {/* --- 🔔 DRAWER BOX OVERLAY (DIALER OVERLAY PLACEMENT RESTORED) --- */}
+                {/* --- 🔔 INLINE DRAWER BOX OVERLAY (DIALER OVERLAY PLACEMENT RESTORED) --- */}
                 {incomingCall && (
                   <div 
                     className="card border-0 shadow-lg position-absolute w-100 top-0 start-0 h-100 bg-white"
@@ -781,81 +781,120 @@ const currentIncomingPhone = useMemo(() => {
                   </div>
                 )}
 
-                <div className="card border-0 shadow-sm p-4 mb-4 bg-white">
-                  <h6 className="fw-bold text-secondary text-uppercase mb-3">Dialer Terminal</h6>
-                  <input
-                    type="tel"
-                    className="form-control form-control-lg text-center fw-bold mb-3 bg-light border-0"
-                    value={dialNumber}
-                    onChange={e => setDialNumber(e.target.value)}
-                  />
-                  <div className="d-flex flex-wrap gap-2 mb-3">
-                    {[1,2,3,4,5,6,7,8,9,'*',0,'#'].map((n) => (
-                      <button key={n} className="btn btn-outline-light border text-dark flex-grow-1 py-2 fs-5" style={{ width: '28%', borderRadius: '8px' }} onClick={() => setDialNumber(dialNumber + n)}>{n}</button>
-                    ))}
+                {/* Sub-tab Navigation Panel wrapper header */}
+                <div className="card border-0 shadow-sm mb-4 bg-white overflow-hidden">
+                  <div className="card-header bg-white p-0 border-0">
+                    <ul className="nav nav-tabs nav-justified border-bottom-0" style={{ fontSize: '14px' }}>
+                      <li className="nav-item">
+                        <button 
+                          className={`nav-item nav-link rounded-0 py-3 fw-bold border-0 ${activeSubTab === 'dialer' ? 'active bg-white text-primary border-bottom border-primary border-3' : 'text-muted bg-light'}`}
+                          onClick={() => setActiveSubTab('dialer')}
+                          style={activeSubTab === 'dialer' ? { borderBottom: '3px solid var(--bs-primary)' } : {}}
+                        >
+                          🎙️ Dialer Terminal
+                        </button>
+                      </li>
+                      <li className="nav-item">
+                        <button 
+                          className={`nav-item nav-link rounded-0 py-3 fw-bold border-0 ${activeSubTab === 'history' ? 'active bg-white text-primary border-bottom border-primary border-3' : 'text-muted bg-light'}`}
+                          onClick={() => setActiveSubTab('history')}
+                          style={activeSubTab === 'history' ? { borderBottom: '3px solid var(--bs-primary)' } : {}}
+                        >
+                          📋 Active Session History
+                        </button>
+                      </li>
+                    </ul>
                   </div>
 
-                  {calling ? (
-                    <div className="d-flex flex-column gap-2">
-                      <div className="d-flex gap-2">
-                        <button className={`btn w-50 py-2 ${isMuted ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleMute}>{isMuted ? '🎙️ Unmute' : '🎙️ Mute'}</button>
-                        <button className={`btn w-50 py-2 ${isOnHold ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleHold}>{isOnHold ? '▶️ Resume' : '⏸️ Hold'}</button>
+                  <div className="card-body p-4">
+                    {/* Render Tab Contents Depending on navigation parameters context */}
+                    {activeSubTab === 'dialer' ? (
+                      <div className="animate-fade-in">
+                        <input
+                          type="tel"
+                          className="form-control form-control-lg text-center fw-bold mb-3 bg-light border-0"
+                          value={dialNumber}
+                          onChange={e => setDialNumber(e.target.value)}
+                        />
+                        <div className="d-flex flex-wrap gap-2 mb-3">
+                          {[1,2,3,4,5,6,7,8,9,'*',0,'#'].map((n) => (
+                            <button key={n} className="btn btn-outline-light border text-dark flex-grow-1 py-2 fs-5" style={{ width: '28%', borderRadius: '8px' }} onClick={() => setDialNumber(dialNumber + n)}>{n}</button>
+                          ))}
+                        </div>
+
+                        {calling ? (
+                          <div className="d-flex flex-column gap-2">
+                            <div className="d-flex gap-2">
+                              <button type="button" className={`btn w-50 py-2 ${isMuted ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleMute}>{isMuted ? '🎙️ Unmute' : '🎙️ Mute'}</button>
+                              <button type="button" className={`btn w-50 py-2 ${isOnHold ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleHold}>{isOnHold ? '▶️ Resume' : '⏸️ Hold'}</button>
+                            </div>
+                            <button type="button" className="btn btn-danger btn-lg w-100 py-2 mt-2" onClick={handleHangUp}>Disconnect Call</button>
+                          </div>
+                        ) : (
+                          <button type="button" className="btn btn-success btn-lg w-100 py-2 fw-bold" onClick={handleCall} disabled={!dialNumber}>Initiate Call</button>
+                        )}
+                        
+                        <button type="button" className="btn btn-sm btn-link text-muted w-100 mt-2 text-decoration-none" onClick={() => setDialNumber('+1')}>Reset Selector</button>
+
+                        {callStatus && (
+                          <div className="alert alert-dark mt-3 mb-0 d-flex justify-content-between align-items-center py-2 px-3 border-0 small">
+                            <span>{callStatus}</span>
+                            {calling && callDuration > 0 && <span className="badge bg-danger">{formatDuration(callDuration)}</span>}
+                          </div>
+                        )}
                       </div>
-                      <button className="btn btn-danger btn-lg w-100 py-2 mt-2" onClick={handleHangUp}>Disconnect Call</button>
-                    </div>
-                  ) : (
-                    <button className="btn btn-success btn-lg w-100 py-2 fw-bold" onClick={handleCall} disabled={!dialNumber}>Initiate Call</button>
-                  )}
-                  
-                  <button className="btn btn-sm btn-link text-muted w-100 mt-2 text-decoration-none" onClick={() => setDialNumber('+1')}>Reset Selector</button>
-
-                  {callStatus && (
-                    <div className="alert alert-dark mt-3 mb-0 d-flex justify-content-between align-items-center py-2 px-3 border-0 small">
-                      <span>{callStatus}</span>
-                      {calling && callDuration > 0 && <span className="badge bg-danger">{formatDuration(callDuration)}</span>}
-                    </div>
-                  )}
+                    ) : (
+                      <div className="animate-fade-in">
+                        <ul className="list-group list-group-flush" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                          {callHistory.length === 0 && <li className="list-group-item text-muted text-center border-0 py-4 small">No current transactions logged.</li>}
+                          {displayedHistory.map((c, i) => (
+                            <li key={i} className="list-group-item px-0 d-flex justify-content-between align-items-center border-0 small">
+                              <div>
+                                {c.type === 'outgoing' ? '📤' : '📥'}{' '}
+                                <span className="fw-bold text-dark">{resolveCallerIdentity(c.number)}</span>
+                                {resolveCallerIdentity(c.number) !== c.number && (
+                                  <div className="text-muted" style={{ fontSize: '10px', marginLeft: '24px' }}>{c.number}</div>
+                                )}
+                                {/* Subtab Inline dial trigger hyperlink configuration loop map hooks */}
+                                <div className="mt-1" style={{ marginLeft: '24px' }}>
+                                  <button 
+                                    type="button" 
+                                    className="btn btn-sm btn-link p-0 text-decoration-none text-primary fw-medium small"
+                                    onClick={() => handleSelectNumberFromHistory(c.number)}
+                                    style={{ fontSize: '11px' }}
+                                  >
+                                    📞 Prepare Return Call
+                                  </button>
+                                </div>
+                              </div>
+                              <span className="text-muted text-end" style={{ fontSize: '11px' }}>
+                                <span className={`badge px-1 py-0.5 fs-8 me-1 ${
+                                  c.status === 'Connected' || c.status === 'Started' ? 'bg-success-subtle text-success' :
+                                  c.status === 'Rejected' || c.status === 'Missed' ? 'bg-danger-subtle text-danger' : 'bg-light text-muted'
+                                }`}>{c.status}</span>
+                                <br/>
+                                {c.time.includes(',') ? c.time.split(',')[1] : c.time}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        
+                        {callHistory.length > 5 && (
+                          <div className="text-center mt-2 border-top pt-2">
+                            <button 
+                              type="button"
+                              className="btn btn-link btn-sm text-decoration-none fw-bold" 
+                              onClick={() => setShowAllHistory(!showAllHistory)}
+                            >
+                              {showAllHistory ? "🔼 Show Less" : `🔽 Show More (${callHistory.length - 5} hidden)`}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Database-Backed Rolling History Control */}
-                <div className="card border-0 shadow-sm p-3 bg-white">
-                  <h6 className="fw-bold text-secondary text-uppercase mb-3 small">Active Session History (7 Days)</h6>
-                  <ul className="list-group list-group-flush" style={{ maxHeight: '350px', overflowY: 'auto' }}>
-                    {callHistory.length === 0 && <li className="list-group-item text-muted text-center border-0 py-3 small">No current transactions logged.</li>}
-                    {displayedHistory.map((c, i) => (
-                      <li key={i} className="list-group-item px-0 d-flex justify-content-between align-items-center border-0 small">
-                        <span>
-                          {c.type === 'outgoing' ? '📤' : '📥'}{' '}
-                          <span className="fw-bold text-dark">
-                            {resolveCallerIdentity(c.number)}
-                          </span>
-                          {resolveCallerIdentity(c.number) !== c.number && (
-                            <div className="text-muted" style={{ fontSize: '10px', marginLeft: '24px' }}>{c.number}</div>
-                          )}
-                        </span>
-                        <span className="text-muted text-end" style={{ fontSize: '11px' }}>
-                          <span className={`badge px-1 py-0.5 fs-8 me-1 ${
-                            c.status === 'Connected' || c.status === 'Started' ? 'bg-success-subtle text-success' :
-                            c.status === 'Rejected' || c.status === 'Missed' ? 'bg-danger-subtle text-danger' : 'bg-light text-muted'
-                          }`}>{c.status}</span>
-                          <br/>
-                          {c.time.includes(',') ? c.time.split(',')[1] : c.time}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  {callHistory.length > 5 && (
-                    <div className="text-center mt-2 border-top pt-2">
-                      <button 
-                        className="btn btn-link btn-sm text-decoration-none fw-bold" 
-                        onClick={() => setShowAllHistory(!showAllHistory)}
-                      >
-                        {showAllHistory ? "🔼 Show Less" : `🔽 Show More (${callHistory.length - 5} hidden)`}
-                      </button>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
 
