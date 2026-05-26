@@ -585,7 +585,8 @@ const CvitpPage = () => {
                               <td>
                                 <span className={`badge px-2 py-1 fs-7 fw-bold ${
                                   entry.status === 'Completed' ? 'bg-success-subtle text-success border border-success' : 
-                                  entry.status === 'Processing' ? 'bg-warning-subtle text-warning border border-warning' : 
+                                  entry.status === 'Processing' ? 'bg-warning-subtle text-warning border border-warning' :
+                                  entry.status === 'Draft Sent' ? 'bg-primary-subtle text-primary border border-primary' :
                                   entry.status === 'Cancelled' ? 'bg-secondary-subtle text-secondary border' :
                                   'bg-danger-subtle text-danger border border-danger'
                                 }`}>
@@ -725,6 +726,7 @@ const CvitpPage = () => {
                               <label className="form-label small fw-bold text-muted">Status</label>
                               <select className="form-select" value={newCustomer.status} onChange={e => setNewCustomer({...newCustomer, status: e.target.value})}>
                                 <option value="Pending">Pending</option>
+                                <option value="Draft Sent">Draft Sent</option>
                                 <option value="Processing">Processing</option>
                                 <option value="Completed">Completed</option>
                                 <option value="Cancelled">Cancelled</option>
