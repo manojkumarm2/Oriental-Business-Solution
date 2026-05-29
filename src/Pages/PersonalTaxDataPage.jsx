@@ -1384,7 +1384,7 @@ const PersonalTaxDataPage = () => {
                               </button>
                             </li>
                             <li>
-                              <button className="dropdown-item" onClick={() => navigate('/staff-handoff', { state: { customerId: recordId, clientName: record.name, clientEmail: record.email, taxType: 'Personal' } })}>
+                              <button className="dropdown-item" onClick={() => navigate('/draftDoc-handoff', { state: { customerId: recordId, clientName: record.name, clientEmail: record.email, taxType: 'Personal' } })}>
                                 Request eSign
                               </button>
                             </li>
@@ -1491,7 +1491,7 @@ const PersonalTaxDataPage = () => {
                                 </button>
                               </li>
                               <li>
-                                <button className="dropdown-item" onClick={() => navigate('/staff-handoff', { state: { customerId: recordId, clientName: record.name, clientEmail: record.email, taxType: 'Personal' } })}>
+                                <button className="dropdown-item" onClick={() => navigate('/draftDoc-handoff', { state: { customerId: recordId, clientName: record.name, clientEmail: record.email, taxType: 'Personal' } })}>
                                   Request eSign
                                 </button>
                               </li>

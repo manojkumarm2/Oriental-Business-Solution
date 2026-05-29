@@ -664,12 +664,12 @@ const CvitpPage = () => {
                     <table className="table align-middle table-hover mb-0">
                       <thead className="table-light text-uppercase fs-7 text-muted">
                         <tr>
-                          <th>ID Reference</th>
                           <th>Taxpayer Name</th>
                           <th>Contact Info</th>
                           <th>Dates (Recv / Filed)</th>
                           <th>Status</th>
                           <th>Assigned To</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -680,31 +680,7 @@ const CvitpPage = () => {
                         ) : (
                           taxEntries.map((entry) => (
                             <tr key={entry.id}>
-                              <td>
-                                <div className="dropdown">
-                                  <button 
-                                    className="btn btn-link fw-bold text-decoration-none p-0 d-flex align-items-center gap-1 dropdown-toggle"
-                                    type="button" 
-                                    data-bs-toggle="dropdown" 
-                                    aria-expanded="false"
-                                    title={`Actions for entry #${entry.id}`}
-                                  >
-                                    ⚙️ #{entry.id}
-                                  </button>
-                                  <ul className="dropdown-menu shadow-sm">
-                                    <li>
-                                      <button className="dropdown-item" onClick={() => handleOpenEditModal(entry)}>
-                                        ✏️ Edit Details
-                                      </button>
-                                    </li>
-                                    <li>
-                                      <button className="dropdown-item" onClick={() => navigate('/staff-handoff', { state: { customerId: entry.id, clientName: entry.name, clientEmail: entry.email || '', taxType: 'CVITP' } })}>
-                                        ✍️ Request eSign
-                                      </button>
-                                    </li>
-                                  </ul>
-                                </div>
-                              </td>
+                              
                               <td>
                                 <div className="fw-bold text-dark">{entry.name}</div>
                                 <span className="text-muted small" style={{fontSize: '11px'}}>Updated: {new Date(entry.updatedAt).toLocaleDateString()}</span>
@@ -737,6 +713,31 @@ const CvitpPage = () => {
                               </td>
                               <td>
                                 <span className="text-dark small fw-medium">{entry.assignedTo || <span className="text-muted italic">Unassigned</span>}</span>
+                              </td>
+                              <td>
+                                <div className="dropdown">
+                                  <button 
+                                    className="btn btn-link fw-bold text-decoration-none p-0 d-flex align-items-center gap-1 dropdown-toggle"
+                                    type="button" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false"
+                                    title={`Actions for entry #${entry.id}`}
+                                  >
+                                    Actions
+                                  </button>
+                                  <ul className="dropdown-menu shadow-sm">
+                                    <li>
+                                      <button className="dropdown-item" onClick={() => handleOpenEditModal(entry)}>
+                                        ✏️ Edit Details
+                                      </button>
+                                    </li>
+                                    <li>
+                                      <button className="dropdown-item" onClick={() => navigate('/draftDoc-handoff', { state: { customerId: entry.id, clientName: entry.name, clientEmail: entry.email || '', taxType: 'CVITP' } })}>
+                                        ✍️ Request eSign
+                                      </button>
+                                    </li>
+                                  </ul>
+                                </div>
                               </td>
                             </tr>
                           ))
@@ -816,7 +817,7 @@ const CvitpPage = () => {
                           onClick={() => setActiveSubTab('dialer')}
                           style={activeSubTab === 'dialer' ? { borderBottom: '3px solid var(--bs-primary)' } : {}}
                         >
-                          🎙️ Dialer Terminal
+                          🎙️ Dialer
                         </button>
                       </li>
                       <li className="nav-item">
@@ -825,7 +826,7 @@ const CvitpPage = () => {
                           onClick={() => setActiveSubTab('history')}
                           style={activeSubTab === 'history' ? { borderBottom: '3px solid var(--bs-primary)' } : {}}
                         >
-                          📋 Active Session History
+                          📋 Call History
                         </button>
                       </li>
                     </ul>
