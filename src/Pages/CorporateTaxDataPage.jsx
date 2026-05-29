@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 
 const assignedToOptions = getUsersEmail();
 
-const statusOptions = ['Open', 'Pending', 'Review', 'Draft Sent', 'Payment Pending', 'Completed'];
+const statusOptions = ['Open', 'Pending', 'Review', 'Draft Sent', 'eSigned', 'Payment Pending', 'Completed'];
 const hstPeriodOptions = ['Monthly', 'Quarterly', 'Annually'];
 const paymentStatusOptions = ['Unpaid', 'Paid', 'Partially Paid'];
 // update duedate option as today to next 4 days in yyyy-mm-dd format
@@ -23,6 +23,7 @@ const getStatusBadgeClass = (status) => {
     Pending: 'bg-warning text-dark',
     Review: 'bg-primary text-white',
     'Draft Sent': 'bg-info text-dark',
+    'eSigned': 'bg-success',
     'Payment Pending': 'bg-danger',
     Completed: 'bg-success',
   };

@@ -12,6 +12,8 @@ import CvitpPage from '../Pages/CvitpPage';
 import FtcfPage from '../Pages/FtcfPage';
 import PersonalTaxDataPage from '../Pages/PersonalTaxDataPage';
 import CorporateTaxDataPage from '../Pages/CorporateTaxDataPage';
+import StaffTaxHandoffDashboard from '../Pages/StaffTaxHandoffDashboard';
+import CustomerTaxPortalPage from '../Pages/CustomerTaxPortalPage';
 import ScrollToTop from '../components/Common/ScrollToTop';
 
 const Router = () => {
@@ -29,6 +31,8 @@ const Router = () => {
                     <Route path='/customerData' element={<PersonalTaxDataPage />} />
                     <Route path='/cvitp' element={<CvitpPage />} />
                     <Route path='/corporateData' element={<CorporateTaxDataPage />} />
+                    <Route path='/staff-handoff' element={<StaffTaxHandoffDashboard />} />
+                    <Route path='/review-tax/:token' element={<CustomerTaxPortalPage />} />
                     <Route path='/blog' element={<BlogPage />} />
                     <Route path='/faq' element={<FaqPage />} />
                     <Route path='/blogdetails/:id' element={<BlogDetails />} />

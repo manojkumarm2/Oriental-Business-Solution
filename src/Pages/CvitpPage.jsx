@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AzureCommunicationTokenCredential } from '@azure/communication-common';
 import { CallClient } from '@azure/communication-calling';
 import { PublicClientApplication } from '@azure/msal-browser';
@@ -54,6 +55,7 @@ const extractPurePhoneNumber = (incomingCallObj) => {
 };
 
 const CvitpPage = () => {
+  const navigate = useNavigate();
   const [isInitialized, setIsInitialized] = useState(false);
   const [account, setAccount] = useState(null);
   const [error, setError] = useState('');
@@ -67,7 +69,7 @@ const CvitpPage = () => {
   const [editingEntryId, setEditingEntryId] = useState(null);
   
   const [newCustomer, setNewCustomer] = useState({
-    name: '', mobile: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: ''
+    name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: ''
   });
 
   const msalInstance = useMemo(() => new PublicClientApplication(msalConfig), []);
@@ -208,7 +210,7 @@ const CvitpPage = () => {
   const handleOpenAddModal = () => {
     setIsEditMode(false);
     setEditingEntryId(null);
-    setNewCustomer({ name: '', mobile: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '' });
+    setNewCustomer({ name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '' });
     setShowAddModal(true);
   };
 
@@ -218,6 +220,7 @@ const CvitpPage = () => {
     setNewCustomer({
       name: entry.name || '',
       mobile: entry.mobile || '',
+      email: entry.email || '',
       status: entry.status || 'Pending',
       assignedTo: entry.assignedTo || '',
       coin: entry.coin || '',
@@ -246,7 +249,7 @@ const CvitpPage = () => {
       if (response.ok) {
         setMessage(isEditMode ? "CVITP Tax Record updated successfully." : "CVITP Tax Record generated successfully.");
         setShowAddModal(false);
-        setNewCustomer({ name: '', mobile: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '' });
+        setNewCustomer({ name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '' });
         fetchCvitpEntries();
       } else {
         const data = await response.json();
@@ -266,9 +269,9 @@ const CvitpPage = () => {
 
   const exportToCSV = () => {
     if (taxEntries.length === 0) return;
-    const headers = ["ID", "Name", "Mobile", "Status", "Assigned To", "Coin Reference", "Received Date", "Filed Date", "Created At"];
+    const headers = ["ID", "Name", "Mobile", "Email", "Status", "Assigned To", "Coin Reference", "Received Date", "Filed Date", "Created At"];
     const rows = taxEntries.map(entry => [
-      entry.id, entry.name, entry.mobile, entry.status, entry.assignedTo, entry.coin, entry.receivedDate, entry.filledDate, entry.createdAt
+      entry.id, entry.name, entry.mobile, entry.email || '', entry.status, entry.assignedTo, entry.coin, entry.receivedDate, entry.filledDate, entry.createdAt
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," 
@@ -663,7 +666,7 @@ const CvitpPage = () => {
                         <tr>
                           <th>ID Reference</th>
                           <th>Taxpayer Name</th>
-                          <th>Mobile</th>
+                          <th>Contact Info</th>
                           <th>Dates (Recv / Filed)</th>
                           <th>Status</th>
                           <th>Assigned To</th>
@@ -678,13 +681,29 @@ const CvitpPage = () => {
                           taxEntries.map((entry) => (
                             <tr key={entry.id}>
                               <td>
-                                <button 
-                                  className="btn btn-link fw-bold text-decoration-none p-0 d-flex align-items-center gap-1"
-                                  onClick={() => handleOpenEditModal(entry)}
-                                  title={`Edit parameters for entry #${entry.id}`}
-                                >
-                                  ✏️ #{entry.id}
-                                </button>
+                                <div className="dropdown">
+                                  <button 
+                                    className="btn btn-link fw-bold text-decoration-none p-0 d-flex align-items-center gap-1 dropdown-toggle"
+                                    type="button" 
+                                    data-bs-toggle="dropdown" 
+                                    aria-expanded="false"
+                                    title={`Actions for entry #${entry.id}`}
+                                  >
+                                    ⚙️ #{entry.id}
+                                  </button>
+                                  <ul className="dropdown-menu shadow-sm">
+                                    <li>
+                                      <button className="dropdown-item" onClick={() => handleOpenEditModal(entry)}>
+                                        ✏️ Edit Details
+                                      </button>
+                                    </li>
+                                    <li>
+                                      <button className="dropdown-item" onClick={() => navigate('/staff-handoff', { state: { customerId: entry.id, clientName: entry.name, clientEmail: entry.email || '', taxType: 'CVITP' } })}>
+                                        ✍️ Request eSign
+                                      </button>
+                                    </li>
+                                  </ul>
+                                </div>
                               </td>
                               <td>
                                 <div className="fw-bold text-dark">{entry.name}</div>
@@ -694,6 +713,11 @@ const CvitpPage = () => {
                                 <button className="btn btn-link btn-sm p-0 text-decoration-none" onClick={() => setDialNumber(entry.mobile)}>
                                   📞 {entry.mobile}
                                 </button>
+                                {entry.email && (
+                                  <div className="text-muted small mt-1" style={{ fontSize: '11px' }}>
+                                    ✉️ {entry.email}
+                                  </div>
+                                )}
                               </td>
                               <td>
                                 <div className="small">📥 <span className="text-muted">{entry.receivedDate || '-'}</span></div>
@@ -702,6 +726,7 @@ const CvitpPage = () => {
                               <td>
                                 <span className={`badge px-2 py-1 fs-7 fw-bold ${
                                   entry.status === 'Completed' ? 'bg-success-subtle text-success border border-success' : 
+                                  entry.status === 'eSigned' ? 'bg-success-subtle text-success border border-success' : 
                                   entry.status === 'Processing' ? 'bg-warning-subtle text-warning border border-warning' :
                                   entry.status === 'Draft Sent' ? 'bg-primary-subtle text-primary border border-primary' :
                                   entry.status === 'Cancelled' ? 'bg-secondary-subtle text-secondary border' :
@@ -920,6 +945,10 @@ const CvitpPage = () => {
                             <label className="form-label small fw-bold text-muted">Mobile Number</label>
                             <input type="tel" className="form-control" required value={newCustomer.mobile} onChange={e => setNewCustomer({...newCustomer, mobile: e.target.value})} placeholder="+19055551234" />
                           </div>
+                          <div className="mb-3">
+                            <label className="form-label small fw-bold text-muted">Email Address</label>
+                            <input type="email" className="form-control" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} placeholder="john@example.com" />
+                          </div>
                           <div className="row">
                             <div className="col-6 mb-3">
                               <label className="form-label small fw-bold text-muted">Coin ID Reference (Export Only)</label>
@@ -931,6 +960,7 @@ const CvitpPage = () => {
                                 <option value="Pending">Pending</option>
                                 <option value="Draft Sent">Draft Sent</option>
                                 <option value="Processing">Processing</option>
+                                <option value="eSigned">eSigned</option>
                                 <option value="Completed">Completed</option>
                                 <option value="Cancelled">Cancelled</option>
                               </select>

@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from datetime import datetime
+import secrets
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, 'obs_db.db')
@@ -192,6 +193,7 @@ class CvitpTaxManager:
         cvitp_data = (
             name,
             mobile,
+            data.get('email', ''),
             data.get('status', 'Pending'),
             data.get('assignedTo', ''),
             data.get('coin', ''),
@@ -203,8 +205,8 @@ class CvitpTaxManager:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO cvitpStatus (
-                    name, mobile, status, assignedTo, coin, receivedDate, filledDate
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    name, mobile, email, status, assignedTo, coin, receivedDate, filledDate
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, cvitp_data)
             conn.commit()
             return cursor.lastrowid
@@ -219,7 +221,7 @@ class CvitpTaxManager:
     @staticmethod
     def update(entry_id, updates):
         allowed_fields = [
-            'name', 'mobile', 'status', 'assignedTo', 'coin', 'receivedDate', 'filledDate'
+            'name', 'mobile', 'email', 'status', 'assignedTo', 'coin', 'receivedDate', 'filledDate'
         ]
         filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
         if not filtered_updates:
@@ -237,3 +239,80 @@ class CvitpTaxManager:
             """, values)
             conn.commit()
             return cursor.rowcount > 0
+
+
+class DocumentSignManager:
+    @staticmethod
+    def initialize_document(data):
+        customer_id = data.get('customer_id')
+        tax_type = data.get('tax_type')         # 'Personal' or 'CVITP'
+        tax_year = data.get('tax_year')         # e.g., 2025
+        onedrive_item_id = data.get('onedrive_item_id')
+        file_name = data.get('file_name')
+        shared_link = data.get('shared_link')
+
+        if not all([customer_id, tax_type, tax_year, onedrive_item_id, shared_link]):
+            raise ValueError("Missing required metadata parameters (including shared link)")
+
+        # Generate a unique secure token for the client portal link
+        secure_portal_token = secrets.token_urlsafe(32)
+        target_table = "personal_tax" if tax_type == "Personal" else "cvitp_tax"
+        
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            query = f"""
+                INSERT INTO {target_table} 
+                (customer_id, tax_year, onedrive_item_id, file_name, portal_token, status, shared_link)
+                VALUES (?, ?, ?, ?, ?, 'Draft Sent', ?)
+            """
+            cursor.execute(query, (customer_id, tax_year, onedrive_item_id, file_name, secure_portal_token, shared_link))
+            new_record_id = cursor.lastrowid
+            
+            main_table = "customers" if tax_type == "Personal" else "cvitpStatus"
+            cursor.execute(f"UPDATE {main_table} SET status = 'Draft Sent' WHERE id = ?", (customer_id,))
+            conn.commit()
+
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
+        customer_access_link = f"{frontend_url}/review-tax/{secure_portal_token}"
+
+        return {
+            "status": "Success", 
+            "record_id": new_record_id, 
+            "link": customer_access_link
+        }
+
+    @staticmethod
+    def get_document_by_token(token):
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT *, 'Personal' as tax_type FROM personal_tax WHERE portal_token = ?", (token,))
+            record = cursor.fetchone()
+            if not record:
+                cursor.execute("SELECT *, 'CVITP' as tax_type FROM cvitp_tax WHERE portal_token = ?", (token,))
+                record = cursor.fetchone()
+            
+            if not record:
+                raise ValueError("Invalid or expired portal link.")
+            return record
+
+    @staticmethod
+    def submit_signature(token, data):
+        typed_name = data.get('typed_name')
+        client_location = data.get('location')
+        agreed_to_file = data.get('agreed_to_file')
+        if not typed_name or not client_location or not agreed_to_file:
+            raise ValueError("Full Name, Location, and Agreement are required for authorization.")
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            for table, main_table in [("personal_tax", "customers"), ("cvitp_tax", "cvitpStatus")]:
+                cursor.execute(f"SELECT id, customer_id FROM {table} WHERE portal_token = ?", (token,))
+                record = cursor.fetchone()
+                if record:
+                    cursor.execute(f"UPDATE {table} SET status = 'eSigned', client_location = ?, agreed_to_file = 1 WHERE portal_token = ?", (client_location, token))
+                    cursor.execute(f"UPDATE {main_table} SET status = 'eSigned' WHERE id = ?", (record['customer_id'],))
+                    conn.commit()
+                    return {"status": "Success", "message": "Document successfully signed."}
+            
+            raise ValueError("Invalid or expired portal link.")

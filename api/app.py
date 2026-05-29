@@ -11,7 +11,7 @@ from dotenv import load_dotenv  # 1. Import load_dotenv
 # 2. Load the environment variables right away
 load_dotenv()
 
-from tax_managers import PersonalTaxManager, CorporateTaxManager, CvitpTaxManager, DB_FILE, get_db_connection
+from tax_managers import PersonalTaxManager, CorporateTaxManager, CvitpTaxManager, DocumentSignManager, DB_FILE, get_db_connection
 from call_manager import CallManager, CvitpCallHistoryManager
 
 app = Flask(__name__)
@@ -84,6 +84,7 @@ def init_sqlite_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 mobile TEXT NOT NULL,
+                email TEXT DEFAULT '',
                 status TEXT DEFAULT 'Pending',
                 assignedTo TEXT DEFAULT '',
                 coin TEXT DEFAULT '',
@@ -101,8 +102,48 @@ def init_sqlite_db():
                 status TEXT,
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS personal_tax (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_id INTEGER,
+                tax_year INTEGER,
+                onedrive_item_id TEXT,
+                file_name TEXT,
+                portal_token TEXT,
+                status TEXT DEFAULT 'Draft_Uploaded',
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS cvitp_tax (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_id INTEGER,
+                tax_year INTEGER,
+                onedrive_item_id TEXT,
+                file_name TEXT,
+                portal_token TEXT,
+                status TEXT DEFAULT 'Draft_Uploaded',
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )''')
         cursor.execute('CREATE TABLE IF NOT EXISTS acs_users (email TEXT PRIMARY KEY, acs_user_id TEXT NOT NULL, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP)')
         cursor.execute('CREATE TABLE IF NOT EXISTS bridged_calls (call_id TEXT PRIMARY KEY, loop_count INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)')
+        
+        # Migrate tables to include shared_link
+        for table in ['personal_tax', 'cvitp_tax']:
+            cursor.execute(f"PRAGMA table_info({table})")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'shared_link' not in columns:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN shared_link TEXT")
+            if 'client_location' not in columns:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN client_location TEXT")
+            if 'agreed_to_file' not in columns:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN agreed_to_file BOOLEAN DEFAULT 0")
+                
+        # Migrate cvitpStatus to include email
+        cursor.execute("PRAGMA table_info(cvitpStatus)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'email' not in columns:
+            cursor.execute("ALTER TABLE cvitpStatus ADD COLUMN email TEXT")
+                
         conn.commit()
 
 @app.route('/api/health', methods=['GET'])
@@ -231,6 +272,46 @@ def update_cvitp_entry(entry_id):
         return jsonify({'message': str(e)}), 400
     except Exception as e:
         return jsonify({'message': 'Server error handling record update.', 'error': str(e)}), 500
+
+# --- Staff Dashboard Routes ---
+@app.route('/api/staff/initialize-document', methods=['POST'])
+@app.route('/staff/initialize-document', methods=['POST'])
+@validate_token
+def initialize_document_flow():
+    try:
+        result = DocumentSignManager.initialize_document(request.get_json())
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as err:
+        return jsonify({"error": f"Database initialization failed: {str(err)}"}), 500
+
+# --- Customer Portal Public Routes ---
+@app.route('/api/public/review-tax/<token>', methods=['GET'])
+def get_public_tax_document(token):
+    try:
+        record = DocumentSignManager.get_document_by_token(token)
+        return jsonify({
+            "tax_year": record.get("tax_year"),
+            "tax_type": record.get("tax_type"),
+            "file_name": record.get("file_name"),
+            "status": record.get("status"),
+            "preview_url": record.get("shared_link") or f"https://onedrive.live.com/embed?resid={record.get('onedrive_item_id')}&action=embedview&wdDownloadButton=False&wdPrintButton=False"
+        }), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"error": "Server error processing document"}), 500
+
+@app.route('/api/public/review-tax/<token>/sign', methods=['POST'])
+def sign_public_tax_document(token):
+    try:
+        result = DocumentSignManager.submit_signature(token, request.get_json())
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": "Server error submitting signature"}), 500
 
 # --- Call Management Routes ---
 @app.route('/api/acs/token', methods=['GET'])

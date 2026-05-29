@@ -32,7 +32,7 @@ const initialNewCustomer = {
   receivedDate: '',
 };
 
-const statusOptions = ['Open', 'Pending', 'Review', 'Draft Sent', 'Payment Pending', 'Completed'];
+const statusOptions = ['Open', 'Pending', 'Review', 'Draft Sent', 'eSigned', 'Payment Pending', 'Completed'];
 // update duedate option as today to next 4 days in yyyy-mm-dd format
 const dueDateOptions = [];
 for (let i = 0; i < 5; i++) {
@@ -47,6 +47,7 @@ const getStatusBadgeClass = (status) => {
     Pending: 'bg-warning text-dark',
     Review: 'bg-primary text-white',
     'Draft Sent': 'bg-info text-dark',
+    'eSigned': 'bg-success',
     'Payment Pending': 'bg-danger',
     Completed: 'bg-success',
   };
@@ -1372,12 +1373,23 @@ const PersonalTaxDataPage = () => {
                           <h5 className="mb-1">{record.name}</h5>
                           <div className="small text-muted">{record.mobile || 'No mobile'}</div>
                         </div>
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => handleRowExpand(recordId, record)}
-                        >
-                          {expandedId === recordId ? 'Hide' : 'Details'}
-                        </button>
+                        <div className="dropdown">
+                          <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Actions
+                          </button>
+                          <ul className="dropdown-menu dropdown-menu-end">
+                            <li>
+                              <button className="dropdown-item" onClick={() => handleRowExpand(recordId, record)}>
+                                {expandedId === recordId ? 'Hide' : 'Details'}
+                              </button>
+                            </li>
+                            <li>
+                              <button className="dropdown-item" onClick={() => navigate('/staff-handoff', { state: { customerId: recordId, clientName: record.name, clientEmail: record.email, taxType: 'Personal' } })}>
+                                Request eSign
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
                       </div>
                       <div className="d-flex flex-wrap gap-2 mb-3">
                         <span className={getStatusBadgeClass(record.status)}>{record.status || 'Unknown'}</span>
@@ -1468,12 +1480,23 @@ const PersonalTaxDataPage = () => {
                           </select>
                         </td>
                         <td>
-                          <button
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => handleRowExpand(recordId, record)}
-                          >
-                            {expandedId === recordId ? 'Collapse Details' : 'Details'}
-                          </button>
+                          <div className="dropdown">
+                            <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                              Actions
+                            </button>
+                            <ul className="dropdown-menu dropdown-menu-end">
+                              <li>
+                                <button className="dropdown-item" onClick={() => handleRowExpand(recordId, record)}>
+                                  {expandedId === recordId ? 'Collapse Details' : 'Details'}
+                                </button>
+                              </li>
+                              <li>
+                                <button className="dropdown-item" onClick={() => navigate('/staff-handoff', { state: { customerId: recordId, clientName: record.name, clientEmail: record.email, taxType: 'Personal' } })}>
+                                  Request eSign
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
                         </td>
                       </tr>
                       {expandedId === recordId && (
