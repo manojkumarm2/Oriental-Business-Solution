@@ -4,6 +4,7 @@ import { AzureCommunicationTokenCredential } from '@azure/communication-common';
 import { CallClient } from '@azure/communication-calling';
 import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
+import ESignDetailsModal from '../components/Common/ESignDetailsModal';
 import { msalConfig, loginRequest, getApiUrl } from '../authConfig';
 
 // --- CVITP NETWORK CARRIER TELEMETRY EXTRACTION UTILITY ---
@@ -65,6 +66,27 @@ const CvitpPage = () => {
   const [taxEntries, setTaxEntries] = useState([]);
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [eSignDetails, setESignDetails] = useState(null);
+
+  const fetchEsignDetails = async (entry) => {
+    try {
+        const tokenResponse = await msalInstance.acquireTokenSilent({ ...loginRequest, account});
+
+        const response = await fetch(getApiUrl(`/api/staff/esign-details/CVITP/${entry.id || entry._id}`), {
+            headers: { 'Authorization': `Bearer ${tokenResponse.accessToken}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            setESignDetails(data);
+        } else {
+            const errorData = await response.json();
+            alert(`Could not fetch e-sign details: ${errorData.error || 'Not found'}`);
+        }
+    } catch (error) {
+        console.error('Error fetching e-sign details:', error);
+        alert('An error occurred while fetching e-sign details.');
+    }
+  };
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState(null);
   
@@ -736,6 +758,11 @@ const CvitpPage = () => {
                                         ✍️ Request eSign
                                       </button>
                                     </li>
+                                    <li>
+                                      <button className="dropdown-item" onClick={() => fetchEsignDetails(entry)}>
+                                        📊 eSign Details
+                                      </button>
+                                    </li>
                                   </ul>
                                 </div>
                               </td>
@@ -1004,6 +1031,8 @@ const CvitpPage = () => {
                 <div className="modal-backdrop fade show" style={{ zIndex: 1540 }}></div>
               </>
             )}
+
+            <ESignDetailsModal details={eSignDetails} onClose={() => setESignDetails(null)} />
           </>
         ) : (
           <div className="alert alert-info mt-4 border-0 p-4 shadow-sm">

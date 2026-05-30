@@ -286,8 +286,23 @@ def initialize_document_flow():
     except Exception as err:
         return jsonify({"error": f"Database initialization failed: {str(err)}"}), 500
 
+@app.route('/api/staff/esign-details/<tax_type>/<customer_id>', methods=['GET'])
+@app.route('/staff/esign-details/<tax_type>/<customer_id>', methods=['GET'])
+@validate_token
+def get_esign_details(tax_type, customer_id):
+    try:
+        if tax_type not in ['Personal', 'CVITP']:
+            raise ValueError("Invalid tax_type. Must be 'Personal' or 'CVITP'")
+        record = DocumentSignManager.get_esign_details_by_customer_id(customer_id, tax_type)
+        return jsonify(record), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as err:
+        return jsonify({"error": f"Failed to retrieve e-sign details: {str(err)}"}), 500
+
 # --- Customer Portal Public Routes ---
 @app.route('/api/public/review-tax/<token>', methods=['GET'])
+@app.route('/public/review-tax/<token>', methods=['GET'])
 def get_public_tax_document(token):
     try:
         record = DocumentSignManager.get_document_by_token(token)
@@ -304,6 +319,7 @@ def get_public_tax_document(token):
         return jsonify({"error": "Server error processing document"}), 500
 
 @app.route('/api/public/review-tax/<token>/sign', methods=['POST'])
+@app.route('/public/review-tax/<token>/sign', methods=['POST'])
 def sign_public_tax_document(token):
     try:
         result = DocumentSignManager.submit_signature(token, request.get_json())

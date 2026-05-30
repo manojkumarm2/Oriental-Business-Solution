@@ -296,6 +296,37 @@ class DocumentSignManager:
             return record
 
     @staticmethod
+    def get_esign_details_by_customer_id(customer_id, tax_type):
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            target_table = "personal_tax" if tax_type == "Personal" else "cvitp_tax"
+            main_table = "customers" if tax_type == "Personal" else "cvitpStatus"
+            
+            # Get only necessary fields, exclude onedrive_item_id and portal_token
+            query = f"""
+                SELECT 
+                    e.id, 
+                    e.tax_year, 
+                    e.file_name, 
+                    e.status, 
+                    e.createdAt, 
+                    e.shared_link, 
+                    e.client_location, 
+                    e.agreed_to_file,
+                    c.name as customerName
+                FROM {target_table} e
+                JOIN {main_table} c ON e.customer_id = c.id
+                WHERE e.customer_id = ?
+                ORDER BY e.createdAt DESC
+            """
+            cursor.execute(query, (customer_id,))
+            records = cursor.fetchall()
+            
+            if not records:
+                raise ValueError(f"No e-sign records found for this customer.")
+            return records
+
+    @staticmethod
     def submit_signature(token, data):
         typed_name = data.get('typed_name')
         client_location = data.get('location')
