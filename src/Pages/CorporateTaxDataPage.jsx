@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
 import { msalConfig, loginRequest, getApiUrl, getRawDateString, getUsersEmail, isAdminRole } from '../authConfig';
+import { requestDocumentFlow } from '../utils/OneDriveHelper';
+
 import * as XLSX from 'xlsx';
 
 const assignedToOptions = getUsersEmail();
@@ -1491,13 +1493,31 @@ const CorporateTaxDataPage = () => {
                             {getRawDateString(dueDateField)}
                           </td>
                           <td>
-                            <button
-                              className="btn btn-sm btn-outline-primary"
-                              type="button"
-                              onClick={() => handleRowExpand(recordId, record)}
-                            >
-                              {expandedId === recordId ? 'Hide' : 'Details'}
-                            </button>
+                            <div className="dropdown">
+                              <button
+                                className="btn btn-sm btn-outline-primary dropdown-toggle"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                              >
+                                Actions
+                              </button>
+                              <ul className="dropdown-menu dropdown-menu-end">
+                                <li>
+                                  <button
+                                    className="dropdown-item"
+                                    onClick={() => handleRowExpand(recordId, record)}
+                                  >
+                                    {expandedId === recordId ? 'Hide' : 'Details'}
+                                  </button>
+                                </li>
+                                <li>
+                                  <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record)}>
+                                    📂 Request Document
+                                  </button>
+                                </li>
+                              </ul>
+                            </div>
                           </td>
                         </tr>
                         {expandedId === recordId && (

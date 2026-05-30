@@ -4,6 +4,8 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
 import ESignDetailsModal from '../components/Common/ESignDetailsModal';
 import { msalConfig, loginRequest, getApiUrl, getRawDateString, getUsersEmail, isAdminRole } from '../authConfig';
+import { requestDocumentFlow } from '../utils/OneDriveHelper';
+
 import * as XLSX from 'xlsx';
 
 const assignedToOptions = getUsersEmail();
@@ -1414,6 +1416,16 @@ const PersonalTaxDataPage = () => {
                                 📊 eSign Details
                               </button>
                             </li>
+
+                            <li>
+
+                              <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record)}>
+
+                                📂 Request Document
+
+                              </button>
+
+                            </li>
                           </ul>
                         </div>
                       </div>
@@ -1525,6 +1537,16 @@ const PersonalTaxDataPage = () => {
                                 <button className="dropdown-item" onClick={() => fetchEsignDetails(record)}>
                                   📊 eSign Details
                                 </button>
+                              </li>
+
+                              <li>
+
+                                <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record)}>
+
+                                  📂 Request Document
+
+                                </button>
+
                               </li>
                             </ul>
                           </div>

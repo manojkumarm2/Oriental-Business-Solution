@@ -6,6 +6,8 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
 import ESignDetailsModal from '../components/Common/ESignDetailsModal';
 import { msalConfig, loginRequest, getApiUrl } from '../authConfig';
+import { requestDocumentFlow } from '../utils/OneDriveHelper';
+
 
 // --- CVITP NETWORK CARRIER TELEMETRY EXTRACTION UTILITY ---
 const extractPurePhoneNumber = (incomingCallObj) => {
@@ -762,6 +764,16 @@ const CvitpPage = () => {
                                       <button className="dropdown-item" onClick={() => fetchEsignDetails(entry)}>
                                         📊 eSign Details
                                       </button>
+                                    </li>
+
+                                    <li>
+
+                                      <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, entry)}>
+
+                                        📂 Request Document
+
+                                      </button>
+
                                     </li>
                                   </ul>
                                 </div>
