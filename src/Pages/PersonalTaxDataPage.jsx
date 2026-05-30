@@ -1419,7 +1419,7 @@ const PersonalTaxDataPage = () => {
 
                             <li>
 
-                              <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record)}>
+                              <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record, 'Personal')}>
 
                                 📂 Request Document
 
@@ -1541,7 +1541,7 @@ const PersonalTaxDataPage = () => {
 
                               <li>
 
-                                <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record)}>
+                                <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record, 'Personal')}>
 
                                   📂 Request Document
 

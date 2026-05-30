@@ -1512,7 +1512,7 @@ const CorporateTaxDataPage = () => {
                                   </button>
                                 </li>
                                 <li>
-                                  <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record)}>
+                                  <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record, 'Corporate')}>
                                     📂 Request Document
                                   </button>
                                 </li>

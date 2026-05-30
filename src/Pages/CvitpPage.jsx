@@ -768,7 +768,7 @@ const CvitpPage = () => {
 
                                     <li>
 
-                                      <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, entry)}>
+                                      <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, entry, 'CVITP')}>
 
                                         📂 Request Document
 
