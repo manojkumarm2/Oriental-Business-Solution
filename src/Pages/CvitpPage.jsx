@@ -802,7 +802,7 @@ const CvitpPage = () => {
                                       </button>
                                     </li>
                                     <li>
-                                      <button className="dropdown-item" onClick={() => navigate('/draftDoc-handoff', { state: { customerId: entry.id, clientName: entry.name, clientEmail: entry.email || '', taxType: 'CVITP' } })}>
+                                      <button className="dropdown-item" onClick={() => navigate('/esign-request', { state: { customerId: entry.id, clientName: entry.name, clientEmail: entry.email || '', taxType: 'CVITP' } })}>
                                         ✍️ Request eSign
                                       </button>
                                     </li>

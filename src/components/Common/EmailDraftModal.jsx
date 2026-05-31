@@ -4,6 +4,7 @@ import { generateRequestDetailsDraft, sendEmailViaGraphAPI } from '../../utils/s
 const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action = 'requestDetails', taxType = 'CVITP', customData = {} }) => {
   const [emailDraft, setEmailDraft] = useState(null);
   const [isSending, setIsSending] = useState(false);
+  const [isEditingBody, setIsEditingBody] = useState(false);
 
   const customDataString = JSON.stringify(customData);
 
@@ -45,11 +46,17 @@ const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action 
     }
   };
 
-  if (!emailDraft) return <div>Loading draft...</div>; // Optional: add a real spinner here
+  if (!emailDraft) return (
+    <div className="modal-backdrop fade show d-flex justify-content-center align-items-center" style={{ zIndex: 1600, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="spinner-border text-light" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="modal-backdrop fade show" style={{ zIndex: 1600, display: 'block', opacity: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-dialog-centered modal-lg">
+      <div className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">Review Email Draft</h5>
@@ -57,23 +64,49 @@ const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action 
           </div>
           
           <div className="modal-body">
+            <div className="row mb-3 align-items-end">
+              <div className="col">
+                <label className="fw-bold form-label">To:</label>
+                <input type="email" className="form-control" value={emailDraft.to} onChange={(e) => setEmailDraft({ ...emailDraft, to: e.target.value })} disabled={isSending} />
+              </div>
+              <div className="col-auto">
+                <button className="btn btn-primary" onClick={handleSendEmail} disabled={isSending}>
+                  {isSending ? 'Sending...' : 'Send Email'}
+                </button>
+              </div>
+            </div>
             <div className="mb-3">
-              <strong>To:</strong> {emailDraft.to} <br/>
-              <strong>Subject:</strong> {emailDraft.subject}
+              <label className="fw-bold form-label">Subject:</label>
+              <input type="text" className="form-control" value={emailDraft.subject} onChange={(e) => setEmailDraft({ ...emailDraft, subject: e.target.value })} disabled={isSending} />
             </div>
             
-            {/* The HTML preview window */}
-            <div 
-              style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '4px', maxHeight: '50vh', overflowY: 'auto' }}
-              dangerouslySetInnerHTML={{ __html: emailDraft.body }} 
-            />
-          </div>
-
-          <div className="modal-footer">
-            <button className="btn btn-secondary" onClick={onClose} disabled={isSending}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleSendEmail} disabled={isSending}>
-              {isSending ? 'Sending via Graph API...' : 'Send Email'}
-            </button>
+            <div className="mb-3">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <label className="fw-bold form-label mb-0">Message Body:</label>
+                <button 
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary" 
+                  onClick={() => setIsEditingBody(!isEditingBody)}
+                  disabled={isSending}
+                >
+                  {isEditingBody ? '👁️ Preview HTML' : '✏️ Edit HTML Source'}
+                </button>
+              </div>
+              {isEditingBody ? (
+                <textarea 
+                  className="form-control" 
+                  value={emailDraft.body} 
+                  onChange={(e) => setEmailDraft({ ...emailDraft, body: e.target.value })} 
+                  disabled={isSending}
+                  style={{ minHeight: '300px', fontFamily: 'monospace', fontSize: '13px' }}
+                />
+              ) : (
+                <div 
+                  style={{ padding: '15px', border: '1px solid #ccc', borderRadius: '4px', backgroundColor: '#f8f9fa' }}
+                  dangerouslySetInnerHTML={{ __html: emailDraft.body }} 
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
