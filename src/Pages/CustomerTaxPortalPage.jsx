@@ -43,13 +43,33 @@ const CustomerTaxPortalPage = () => {
 
     try {
       setLoading(true);
+
+      // Capture telemetry data for audit trail
+      let publicIp = "Unknown";
+      let resolvedLocation = "Unknown";
+      try {
+        const geoRes = await fetch("https://ipapi.co/json/");
+        if (geoRes.ok) {
+          const geoData = await geoRes.json();
+          publicIp = geoData.ip || "Unknown";
+          resolvedLocation = [geoData.city, geoData.region, geoData.country_name].filter(Boolean).join(", ");
+        }
+      } catch (e) {
+        console.warn("Could not fetch IP geolocation telemetry", e);
+      }
+
       const response = await fetch(getApiUrl(`/api/public/review-tax/${token}/sign`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           typed_name: signatureName,
           location: locationStr,
-          agreed_to_file: agreedToFile
+          agreed_to_file: agreedToFile,
+          consent_timestamp: new Date().toLocaleString("en-US", { timeZoneName: "short" }),
+          public_ip: publicIp,
+          resolved_location: resolvedLocation,
+          device_platform: navigator.platform,
+          browser_engine: navigator.userAgent
         })
       });
 

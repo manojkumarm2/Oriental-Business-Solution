@@ -137,6 +137,18 @@ def init_sqlite_db():
                 cursor.execute(f"ALTER TABLE {table} ADD COLUMN client_location TEXT")
             if 'agreed_to_file' not in columns:
                 cursor.execute(f"ALTER TABLE {table} ADD COLUMN agreed_to_file BOOLEAN DEFAULT 0")
+            if 'consent_timestamp' not in columns:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN consent_timestamp TEXT")
+            if 'public_ip' not in columns:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN public_ip TEXT")
+            if 'resolved_location' not in columns:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN resolved_location TEXT")
+            if 'device_platform' not in columns:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN device_platform TEXT")
+            if 'browser_engine' not in columns:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN browser_engine TEXT")
+            if 'typed_name' not in columns:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN typed_name TEXT")
                 
         # Migrate cvitpStatus to include email
         cursor.execute("PRAGMA table_info(cvitpStatus)")

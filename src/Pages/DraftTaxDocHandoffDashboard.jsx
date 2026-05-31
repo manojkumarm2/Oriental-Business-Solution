@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { msalConfig, loginRequest, getApiUrl } from '../authConfig';
 import DataPageHeader from '../components/Common/DataPageHeader';
+import EmailDraftModal from '../components/Common/EmailDraftModal';
 
 const DraftTaxDocHandoffDashboard = () => {
   const location = useLocation();
@@ -20,6 +21,7 @@ const DraftTaxDocHandoffDashboard = () => {
   // Tracking link returned from Python API
   const [generatedLink, setGeneratedLink] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailModalConfig, setEmailModalConfig] = useState(null);
 
   // MSAL & OneDrive state
   const [account, setAccount] = useState(null);
@@ -231,20 +233,6 @@ const DraftTaxDocHandoffDashboard = () => {
     }
   };
 
-  // Generates the native deep-link structure for Outlook execution
-  const buildOutlookMailto = () => {
-    const subject = encodeURIComponent(`Action Required: Review & Sign Your ${taxYear} Tax Return Draft`);
-    const emailBody = encodeURIComponent(
-      `Hello ${clientName},\n\n` +
-      `Our team has completed the draft configuration for your ${taxYear} tax return.\n\n` +
-      `Please use our secure client portal link below to review the draft layout, supply your authorization signature, and complete processing fees:\n` +
-      `${generatedLink}\n\n` +
-      `Best regards,\nTax Preparation Team`
-    );
-
-    return `mailto:${clientEmail}?subject=${subject}&body=${emailBody}`;
-  };
-
   return (
     <div className="bg-light min-vh-100 pb-5">
       <DataPageHeader
@@ -453,17 +441,43 @@ const DraftTaxDocHandoffDashboard = () => {
                   </h5>
                   <code className="bg-white p-3 d-block rounded border text-break fs-6 text-dark">{generatedLink}</code>
                 </div>
-                <a href={buildOutlookMailto()} className="btn btn-success fw-bold d-flex align-items-center justify-content-center gap-2 py-2">
+                <button 
+                  type="button"
+                  className="btn btn-success fw-bold d-flex align-items-center justify-content-center gap-2 py-2"
+                  onClick={() => setEmailModalConfig({
+                    action: 'requestEsign',
+                    taxType: taxType,
+                    customer: { email: clientEmail },
+                    customData: {
+                      generatedLink,
+                      taxYear,
+                      clientName,
+                      clientEmail
+                    }
+                  })}
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414.05 3.555ZM0 4.697v7.104l5.803-3.558L0 4.697ZM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586l-1.239-.757Zm3.436-.586L16 11.801V4.697l-5.803 3.546Z"/>
                   </svg>
-                  Launch Outlook & Compose Message
-                </a>
+                  Review & Send eSign Email
+                </button>
               </div>
             )}
           </div>
         </div>
       </div>
+      
+      {emailModalConfig && (
+        <EmailDraftModal 
+          customerData={emailModalConfig.customer}
+          action={emailModalConfig.action}
+          taxType={emailModalConfig.taxType}
+          customData={emailModalConfig.customData}
+          msalInstance={msalInstance}
+          account={account}
+          onClose={() => setEmailModalConfig(null)}
+        />
+      )}
     </div>
   );
 };

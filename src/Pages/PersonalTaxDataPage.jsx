@@ -4,7 +4,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
 import ESignDetailsModal from '../components/Common/ESignDetailsModal';
 import { msalConfig, loginRequest, getApiUrl, getRawDateString, getUsersEmail, isAdminRole } from '../authConfig';
-import { requestDocumentFlow } from '../utils/OneDriveHelper';
+import EmailDraftModal from '../components/Common/EmailDraftModal';
 
 import * as XLSX from 'xlsx';
 
@@ -137,6 +137,7 @@ const PersonalTaxDataPage = () => {
   const [editValues, setEditValues] = useState({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [eSignDetails, setESignDetails] = useState(null);
+  const [emailModalConfig, setEmailModalConfig] = useState(null);
 
   const fetchEsignDetails = async (entry) => {
     try {
@@ -1021,15 +1022,6 @@ const PersonalTaxDataPage = () => {
         </div>
       )}
 
-      {(loading || savingId) && (
-        <div className="page-overlay-loader">
-          <div className="loader-box text-center">
-            <div className="spinner-border text-primary mb-3" role="status" aria-hidden="true"></div>
-            <div>{savingId ? 'Saving changes...' : 'Loading records...'}</div>
-          </div>
-        </div>
-      )}
-
       {account ? (
         <>
           <div className="row g-3 mb-4">
@@ -1370,8 +1362,18 @@ const PersonalTaxDataPage = () => {
             </div>
           </div>
 
+          <div className="position-relative" style={{ minHeight: '350px' }}>
+            {(loading || savingId) && (
+              <div className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white" style={{ zIndex: 10, opacity: 0.8, borderRadius: '8px' }}>
+                <div className="text-center">
+                  <div className="spinner-border text-primary mb-2" role="status" aria-hidden="true"></div>
+                  <div className="fw-bold text-secondary">{savingId ? 'Saving changes...' : 'Loading records...'}</div>
+                </div>
+              </div>
+            )}
+
           <div className="d-block d-md-none">
-            {pageData.length === 0 ? (
+            {pageData.length === 0 && !loading ? (
               <div className="card mb-3 mobile-record-card">
                 <div className="card-body text-center py-4">
                   <p className="mb-0 text-muted">No customers match your search or filter.</p>
@@ -1397,18 +1399,18 @@ const PersonalTaxDataPage = () => {
                           <div className="small text-muted">{record.mobile || 'No mobile'}</div>
                         </div>
                         <div className="dropdown">
-                          <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                          <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="window">
                             Actions
                           </button>
                           <ul className="dropdown-menu dropdown-menu-end">
                             <li>
                               <button className="dropdown-item" onClick={() => handleRowExpand(recordId, record)}>
-                                {expandedId === recordId ? 'Hide' : 'Details'}
+                                {expandedId === recordId ? 'Hide' : '✏️ Edit Details'}
                               </button>
                             </li>
                             <li>
                               <button className="dropdown-item" onClick={() => navigate('/draftDoc-handoff', { state: { customerId: recordId, clientName: record.name, clientEmail: record.email, taxType: 'Personal' } })}>
-                                Request eSign
+                                ✍️ Request eSign
                               </button>
                             </li>
                             <li>
@@ -1419,7 +1421,7 @@ const PersonalTaxDataPage = () => {
 
                             <li>
 
-                              <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record, 'Personal')}>
+                              <button className="dropdown-item" onClick={() => setEmailModalConfig({ customer: record, action: 'requestDocument', taxType: 'Personal' })}>
 
                                 📂 Request Document
 
@@ -1461,8 +1463,8 @@ const PersonalTaxDataPage = () => {
               })
             )}
           </div>
-          <div className="table-responsive d-none d-md-block">
-            <table className="table table-modern table-hover align-middle shadow-sm overflow-hidden">
+          <div className="table-responsive d-none d-md-block" style={{ minHeight: '350px' }}>
+            <table className="table table-modern table-hover align-middle shadow-sm">
               <colgroup>
                 <col style={{ width: '26%' }} />
                 <col style={{ width: '14%' }} />
@@ -1519,18 +1521,18 @@ const PersonalTaxDataPage = () => {
                         </td>
                         <td>
                           <div className="dropdown">
-                            <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="window">
                               Actions
                             </button>
                             <ul className="dropdown-menu dropdown-menu-end">
                               <li>
                                 <button className="dropdown-item" onClick={() => handleRowExpand(recordId, record)}>
-                                  {expandedId === recordId ? 'Collapse Details' : 'Details'}
+                                  {expandedId === recordId ? 'Collapse Details' : '✏️ Edit Details'}
                                 </button>
                               </li>
                               <li>
                                 <button className="dropdown-item" onClick={() => navigate('/draftDoc-handoff', { state: { customerId: recordId, clientName: record.name, clientEmail: record.email, taxType: 'Personal' } })}>
-                                  Request eSign
+                                  ✍️ Request eSign
                                 </button>
                               </li>
                               <li>
@@ -1541,7 +1543,7 @@ const PersonalTaxDataPage = () => {
 
                               <li>
 
-                                <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, record, 'Personal')}>
+                                <button className="dropdown-item" onClick={() => setEmailModalConfig({ customer: record, action: 'requestDocument', taxType: 'Personal' })}>
 
                                   📂 Request Document
 
@@ -1562,7 +1564,7 @@ const PersonalTaxDataPage = () => {
                     </React.Fragment>
                   );
                 })}
-                {sortedData.length === 0 && (
+                {sortedData.length === 0 && !loading && (
                   <tr>
                     <td colSpan="6" className="text-center py-4 text-muted">
                       No customers match your search or filter.
@@ -1593,6 +1595,7 @@ const PersonalTaxDataPage = () => {
               </button>
             </div>
           </div>
+          </div>
         </>
       ) : (
         <div className="alert alert-info">
@@ -1601,6 +1604,18 @@ const PersonalTaxDataPage = () => {
       )}
 
       <ESignDetailsModal details={eSignDetails} onClose={() => setESignDetails(null)} />
+
+      {emailModalConfig && (
+        <EmailDraftModal 
+          customerData={emailModalConfig.customer}
+          action={emailModalConfig.action}
+          taxType={emailModalConfig.taxType}
+          customData={emailModalConfig.customData}
+          msalInstance={msalInstance}
+          account={account}
+          onClose={() => setEmailModalConfig(null)}
+        />
+      )}
 
     </div>
   );

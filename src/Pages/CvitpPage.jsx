@@ -6,7 +6,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
 import ESignDetailsModal from '../components/Common/ESignDetailsModal';
 import { msalConfig, loginRequest, getApiUrl } from '../authConfig';
-import { requestDocumentFlow } from '../utils/OneDriveHelper';
+import EmailDraftModal from '../components/Common/EmailDraftModal';
 
 
 // --- CVITP NETWORK CARRIER TELEMETRY EXTRACTION UTILITY ---
@@ -69,6 +69,8 @@ const CvitpPage = () => {
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [eSignDetails, setESignDetails] = useState(null);
+  const [emailModalConfig, setEmailModalConfig] = useState(null);
+  const [searchText, setSearchText] = useState('');
 
   const fetchEsignDetails = async (entry) => {
     try {
@@ -89,6 +91,7 @@ const CvitpPage = () => {
         alert('An error occurred while fetching e-sign details.');
     }
   };
+  const [isSaving, setIsSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState(null);
   
@@ -256,6 +259,7 @@ const CvitpPage = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       const tokenResponse = await msalInstance.acquireTokenSilent({ ...loginRequest, account });
       const endpoint = isEditMode ? `/api/cvitp/${editingEntryId}` : '/api/cvitp';
@@ -281,8 +285,19 @@ const CvitpPage = () => {
       }
     } catch (err) {
       setError("Network error processing customer records.");
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const filteredEntries = useMemo(() => {
+    if (!searchText) return taxEntries;
+    const lowerSearch = searchText.toLowerCase();
+    return taxEntries.filter(entry => {
+      const matchStr = `${entry.name || ''} ${entry.mobile || ''} ${entry.email || ''} ${entry.assignedTo || ''} ${entry.status || ''}`.toLowerCase();
+      return matchStr.includes(lowerSearch);
+    });
+  }, [taxEntries, searchText]);
 
   // Callback mapping logic to handle history interactions seamlessly
   const handleSelectNumberFromHistory = (targetNumber) => {
@@ -674,17 +689,42 @@ const CvitpPage = () => {
                   📥 Export Report
                 </button>
               </div>
-              <button className="btn btn-sm btn-outline-primary" onClick={() => fetchCvitpEntries()}>🔄 Refresh Data</button>
+              <button className="btn btn-sm btn-outline-primary" onClick={() => fetchCvitpEntries()} disabled={isLoadingEntries}>
+                {isLoadingEntries ? '🔄 Refreshing...' : '🔄 Refresh Data'}
+              </button>
+            </div>
+
+            <div className="row mb-3">
+              <div className="col-md-6 col-lg-5">
+                <div className="input-group shadow-sm rounded-pill overflow-hidden">
+                  <span className="input-group-text bg-white border-end-0">🔎</span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0"
+                    placeholder="Search name, mobile, email..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="row">
               {/* Left Column: Data Grid Dashboard */}
               <div className="col-12 col-xl-8 mb-4">
-                <div className="card border-0 shadow-sm">
+                <div className="card border-0 shadow-sm position-relative">
+                  {(isLoadingEntries || isSaving) && (
+                    <div className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white" style={{ zIndex: 10, opacity: 0.8, borderRadius: 'inherit' }}>
+                      <div className="text-center">
+                        <div className="spinner-border text-primary mb-2" role="status" aria-hidden="true"></div>
+                        <div className="fw-bold text-secondary">{isSaving ? 'Saving changes...' : 'Loading records...'}</div>
+                      </div>
+                    </div>
+                  )}
                   <div className="card-header bg-white border-0 pt-3">
                     <h5 className="card-title mb-0 text-secondary fw-bold">CVITP Status Matrix</h5>
                   </div>
-                  <div className="table-responsive" style={{ maxHeight: '620px' }}>
+                  <div className="table-responsive" style={{ maxHeight: '620px', minHeight: '320px' }}>
                     <table className="table align-middle table-hover mb-0">
                       <thead className="table-light text-uppercase fs-7 text-muted">
                         <tr>
@@ -697,12 +737,12 @@ const CvitpPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {isLoadingEntries ? (
-                          <tr><td colSpan="6" className="text-center py-5 text-muted">Loading taxonomy table records...</td></tr>
-                        ) : taxEntries.length === 0 ? (
+                        {taxEntries.length === 0 && !isLoadingEntries ? (
                           <tr><td colSpan="6" className="text-center py-5 text-muted">No operational clinic registrations indexed.</td></tr>
+                        ) : filteredEntries.length === 0 && !isLoadingEntries ? (
+                          <tr><td colSpan="6" className="text-center py-5 text-muted">No matching records found.</td></tr>
                         ) : (
-                          taxEntries.map((entry) => (
+                          filteredEntries.map((entry) => (
                             <tr key={entry.id}>
                               
                               <td>
@@ -745,6 +785,7 @@ const CvitpPage = () => {
                                     type="button" 
                                     data-bs-toggle="dropdown" 
                                     aria-expanded="false"
+                                    data-bs-boundary="window"
                                     title={`Actions for entry #${entry.id}`}
                                   >
                                     Actions
@@ -753,6 +794,11 @@ const CvitpPage = () => {
                                     <li>
                                       <button className="dropdown-item" onClick={() => handleOpenEditModal(entry)}>
                                         ✏️ Edit Details
+                                      </button>
+                                    </li>
+                                    <li>
+                                      <button className="dropdown-item" onClick={() => setEmailModalConfig({ customer: entry, action: 'requestDetails', taxType: 'CVITP' })}>
+                                        📋 Request Details
                                       </button>
                                     </li>
                                     <li>
@@ -768,7 +814,7 @@ const CvitpPage = () => {
 
                                     <li>
 
-                                      <button className="dropdown-item" onClick={() => requestDocumentFlow(msalInstance, account, entry, 'CVITP')}>
+                                      <button className="dropdown-item" onClick={() => setEmailModalConfig({ customer: entry, action: 'requestDocument', taxType: 'CVITP' })}>
 
                                         📂 Request Document
 
@@ -1032,8 +1078,8 @@ const CvitpPage = () => {
                         </div>
                         <div className="modal-footer bg-light border-0">
                           <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-                          <button type="submit" className="btn btn-primary px-4 fw-bold">
-                            {isEditMode ? "Save Changes" : "Commit Record"}
+                          <button type="submit" className="btn btn-primary px-4 fw-bold" disabled={isSaving}>
+                            {isSaving ? "Saving..." : (isEditMode ? "Save Changes" : "Commit Record")}
                           </button>
                         </div>
                       </form>
@@ -1045,6 +1091,18 @@ const CvitpPage = () => {
             )}
 
             <ESignDetailsModal details={eSignDetails} onClose={() => setESignDetails(null)} />
+            
+            {emailModalConfig && (
+              <EmailDraftModal 
+                customerData={emailModalConfig.customer}
+                action={emailModalConfig.action}
+                taxType={emailModalConfig.taxType}
+                customData={emailModalConfig.customData}
+                msalInstance={msalInstance}
+                account={account}
+                onClose={() => setEmailModalConfig(null)}
+              />
+            )}
           </>
         ) : (
           <div className="alert alert-info mt-4 border-0 p-4 shadow-sm">

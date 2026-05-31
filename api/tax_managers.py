@@ -313,7 +313,15 @@ class DocumentSignManager:
                     e.shared_link, 
                     e.client_location, 
                     e.agreed_to_file,
-                    c.name as customerName
+                    e.consent_timestamp,
+                    e.public_ip,
+                    e.resolved_location,
+                    e.device_platform,
+                    e.browser_engine,
+                    e.typed_name,
+                    e.portal_token,
+                    c.name as customerName,
+                    c.email
                 FROM {target_table} e
                 JOIN {main_table} c ON e.customer_id = c.id
                 WHERE e.customer_id = ?
@@ -331,6 +339,13 @@ class DocumentSignManager:
         typed_name = data.get('typed_name')
         client_location = data.get('location')
         agreed_to_file = data.get('agreed_to_file')
+        
+        consent_timestamp = data.get('consent_timestamp')
+        public_ip = data.get('public_ip')
+        resolved_location = data.get('resolved_location')
+        device_platform = data.get('device_platform')
+        browser_engine = data.get('browser_engine')
+
         if not typed_name or not client_location or not agreed_to_file:
             raise ValueError("Full Name, Location, and Agreement are required for authorization.")
         
@@ -341,7 +356,20 @@ class DocumentSignManager:
                 cursor.execute(f"SELECT id, customer_id FROM {table} WHERE portal_token = ?", (token,))
                 record = cursor.fetchone()
                 if record:
-                    cursor.execute(f"UPDATE {table} SET status = 'eSigned', client_location = ?, agreed_to_file = 1 WHERE portal_token = ?", (client_location, token))
+                    update_query = f"""
+                        UPDATE {table} 
+                        SET status = 'eSigned', 
+                            client_location = ?, 
+                            agreed_to_file = 1,
+                            consent_timestamp = ?,
+                            public_ip = ?,
+                            resolved_location = ?,
+                            device_platform = ?,
+                            browser_engine = ?,
+                            typed_name = ?
+                        WHERE portal_token = ?
+                    """
+                    cursor.execute(update_query, (client_location, consent_timestamp, public_ip, resolved_location, device_platform, browser_engine, typed_name, token))
                     cursor.execute(f"UPDATE {main_table} SET status = 'eSigned' WHERE id = ?", (record['customer_id'],))
                     conn.commit()
                     return {"status": "Success", "message": "Document successfully signed."}
