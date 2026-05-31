@@ -36,7 +36,7 @@ const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action 
   const handleSendEmail = async () => {
     setIsSending(true);
     try {
-      await sendEmailViaGraphAPI(msalInstance, account, emailDraft);
+      await sendEmailViaGraphAPI(msalInstance, account, emailDraft, taxType.toLowerCase());
       alert("Email sent successfully!");
       onClose();
     } catch (error) {

@@ -3,7 +3,7 @@ import { emailTemplates } from './emailTemplates';
 /**
  * Sends an email using the Microsoft Graph API
  */
-export const sendEmailViaGraphAPI = async (msalInstance, account, emailConfig) => {
+export const sendEmailViaGraphAPI = async (msalInstance, account, emailConfig, taxType='personal') => {
   const { subject, body, to } = emailConfig;
 
   try {
@@ -28,15 +28,18 @@ export const sendEmailViaGraphAPI = async (msalInstance, account, emailConfig) =
               address: to
             }
           }
-        ],
-        from: {
-            emailAddress: {
-                address: "cvitp-team@orientalbiz.ca"
-            }
-        }
+        ]
       },
       saveToSentItems: "true"
     };
+
+    if (taxType.toLowerCase() === 'cvitp') {
+        mailPayload.from = {
+            emailAddress: {
+                address: "cvitp-team@orientalbiz.ca"
+            }
+        };
+    }
 
     // 3. Make the API call
     const response = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
