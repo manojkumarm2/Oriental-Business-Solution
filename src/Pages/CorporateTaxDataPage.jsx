@@ -1351,13 +1351,23 @@ const CorporateTaxDataPage = () => {
                           <h5 className="mb-1">{record.businessName}</h5>
                           {activeTab === 'Summary' && <div className="small text-muted">{record.mobile || 'No mobile'}</div>}
                         </div>
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          type="button"
-                          onClick={() => handleRowExpand(recordId, record)}
-                        >
-                          {expandedId === recordId ? 'Hide' : 'Details'}
-                        </button>
+                        <div className="dropdown">
+                          <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="window">
+                            Actions
+                          </button>
+                          <ul className="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li>
+                              <button className="dropdown-item" onClick={() => handleRowExpand(recordId, record)}>
+                                {expandedId === recordId ? 'Hide' : '✏️ Edit Details'}
+                              </button>
+                            </li>
+                            <li>
+                              <button className="dropdown-item" onClick={() => setEmailModalConfig({ customer: record, action: 'requestDocument', taxType: 'Corporate' })}>
+                                📂 Request Document
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
                       </div>
                       <div className="mb-3">
                         <div className="d-flex flex-wrap gap-2 mb-2">

@@ -680,7 +680,7 @@ const CvitpPage = () => {
         {account ? (
           <>
             {/* Top Toolbar Action Elements */}
-            <div className="d-flex justify-content-between align-items-center mt-4 mb-3">
+            <div className="d-flex flex-wrap justify-content-between align-items-center mt-4 mb-3 gap-3">
               <div className="d-flex gap-2">
                 <button className="btn btn-primary d-flex align-items-center gap-2 shadow-sm" onClick={handleOpenAddModal}>
                   ➕ Add Customer
@@ -724,7 +724,55 @@ const CvitpPage = () => {
                   <div className="card-header bg-white border-0 pt-3">
                     <h5 className="card-title mb-0 text-secondary fw-bold">CVITP Status Matrix</h5>
                   </div>
-                  <div className="table-responsive" style={{ maxHeight: '620px', minHeight: '320px' }}>
+
+                  {/* Mobile Card View */}
+                  <div className="d-block d-md-none p-3 bg-light">
+                    {filteredEntries.length === 0 && !isLoadingEntries ? (
+                      <div className="card mb-3 mobile-record-card shadow-sm border-0">
+                        <div className="card-body text-center py-4">
+                          <p className="mb-0 text-muted">No matching records found.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      filteredEntries.map((entry) => (
+                        <div key={entry.id} className="card mb-3 mobile-record-card shadow-sm border-0">
+                          <div className="card-body p-3">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <div>
+                                <h6 className="mb-1 fw-bold text-dark">{entry.name}</h6>
+                                <div className="small text-muted" style={{fontSize: '11px'}}>Updated: {new Date(entry.updatedAt).toLocaleDateString()}</div>
+                              </div>
+                              <div className="dropdown">
+                                <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="window">Actions</button>
+                                <ul className="dropdown-menu dropdown-menu-end shadow-sm">
+                                  <li><button className="dropdown-item" onClick={() => handleOpenEditModal(entry)}>✏️ Edit Details</button></li>
+                                  <li><button className="dropdown-item" onClick={() => setEmailModalConfig({ customer: entry, action: 'requestDetails', taxType: 'CVITP' })}>📋 Request Details</button></li>
+                                  <li><button className="dropdown-item" onClick={() => navigate('/esign-request', { state: { customerId: entry.id, clientName: entry.name, clientEmail: entry.email || '', taxType: 'CVITP' } })}>✍️ Request eSign</button></li>
+                                  <li><button className="dropdown-item" onClick={() => fetchEsignDetails(entry)}>📊 eSign Details</button></li>
+                                  <li><button className="dropdown-item" onClick={() => setEmailModalConfig({ customer: entry, action: 'requestDocument', taxType: 'CVITP' })}>📂 Request Document</button></li>
+                                </ul>
+                              </div>
+                            </div>
+                            <div className="mb-2">
+                              <button className="btn btn-link btn-sm p-0 text-decoration-none d-block text-start" onClick={() => setDialNumber(entry.mobile)}>📞 {entry.mobile}</button>
+                              {entry.email && <div className="text-muted small mt-1" style={{fontSize: '11px'}}>✉️ {entry.email}</div>}
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                              <div className="small">📥 <span className="text-muted">{entry.receivedDate || '-'}</span></div>
+                              <div className="small">✅ <span className="text-success fw-bold">{entry.filledDate || '-'}</span></div>
+                            </div>
+                            <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                              <span className={`badge px-2 py-1 fs-7 fw-bold ${entry.status === 'Completed' || entry.status === 'eSigned' ? 'bg-success-subtle text-success border border-success' : entry.status === 'Processing' ? 'bg-warning-subtle text-warning border border-warning' : entry.status === 'Draft Sent' ? 'bg-primary-subtle text-primary border border-primary' : entry.status === 'Cancelled' ? 'bg-secondary-subtle text-secondary border' : 'bg-danger-subtle text-danger border border-danger'}`}>{entry.status}</span>
+                              <span className="text-dark small fw-medium text-truncate" style={{maxWidth: '120px'}} title={entry.assignedTo}>{entry.assignedTo || <span className="text-muted fst-italic">Unassigned</span>}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="table-responsive d-none d-md-block" style={{ maxHeight: '620px', minHeight: '320px' }}>
                     <table className="table align-middle table-hover mb-0">
                       <thead className="table-light text-uppercase fs-7 text-muted">
                         <tr>

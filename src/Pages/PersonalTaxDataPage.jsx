@@ -1402,7 +1402,7 @@ const PersonalTaxDataPage = () => {
                           <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="window">
                             Actions
                           </button>
-                          <ul className="dropdown-menu dropdown-menu-end">
+                          <ul className="dropdown-menu dropdown-menu-end shadow-sm">
                             <li>
                               <button className="dropdown-item" onClick={() => handleRowExpand(recordId, record)}>
                                 {expandedId === recordId ? 'Hide' : '✏️ Edit Details'}

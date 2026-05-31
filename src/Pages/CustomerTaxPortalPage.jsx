@@ -131,32 +131,32 @@ const CustomerTaxPortalPage = () => {
         <div className="row justify-content-center">
           <div className="col-lg-10">
             <div className="card shadow-sm border-0 mb-4">
-              <div className="card-header bg-secondary text-white p-4">
-                <h3 className="mb-0">Tax Return Authorization</h3>
+              <div className="card-header bg-secondary text-white p-3 p-md-4">
+                <h4 className="mb-0">Tax Return Authorization</h4>
                 <p className="mb-0 opacity-75">Review and sign {displayFileName}</p>
               </div>
               
               <div className="card-body p-0 bg-light">
                 {/* Primary Document Action for strict browsers */}
-                <div className="p-5 text-center border-bottom bg-white">
-                  <h4 className="mb-3">Document Ready for Review</h4>
+                <div className="p-4 p-md-5 text-center border-bottom bg-white">
+                  <h5 className="mb-3">Document Ready for Review</h5>
                   <p className="text-muted mb-4" style={{ fontSize: "15px" }}>
                     Please click the button below to securely open your tax return draft in a new tab. 
                     Once you have reviewed the document, return to this page to authorize your filing.
                   </p>
-                  <a href={securePreviewUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-lg px-5 shadow-sm fw-bold">
+                  <a href={securePreviewUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-lg px-4 shadow-sm fw-bold w-100 d-md-inline-block" style={{ maxWidth: '100%' }}>
                     📄 Open & Review Document
                   </a>
                 </div>
               </div>
 
               {documentData.status === "eSigned" || documentData.status === "Signed" ? (
-                <div className="card-footer bg-white p-4 text-center">
-                  <h4 className="text-success mb-0">✅ This document has already been signed.</h4>
+                <div className="card-footer bg-white p-3 p-md-4 text-center">
+                  <h5 className="text-success mb-0">✅ This document has already been signed.</h5>
                 </div>
               ) : (
-                <div className="card-footer bg-white p-4">
-                  <h4 className="mb-3">Authorization & Consent</h4>
+                <div className="card-footer bg-white p-3 p-md-4">
+                  <h5 className="mb-3">Authorization & Consent</h5>
                   <p className="text-muted small mb-4">By completing the fields below, I certify that I have reviewed the tax return information and authorize the filing of this return.</p>
 
                   <div className="row g-4">
@@ -171,13 +171,13 @@ const CustomerTaxPortalPage = () => {
                     <div className="col-md-12 mt-2">
                       <div className="form-check">
                         <input className="form-check-input" type="checkbox" id="agreeCheck" checked={agreedToFile} onChange={(e) => setAgreedToFile(e.target.checked)} style={{ transform: "scale(1.2)", marginTop: "6px" }} />
-                        <label className="form-check-label fw-bold ms-2" htmlFor="agreeCheck" style={{ fontSize: "15px" }}>
+                        <label className="form-check-label fw-bold ms-2" htmlFor="agreeCheck" style={{ fontSize: "14px" }}>
                           I have reviewed the draft return and agree to proceed with the filing.
                         </label>
                       </div>
                     </div>
                   </div>
-                  <div className="text-center mt-4"><button className="btn btn-success btn-lg px-5 shadow-sm" onClick={handleSubmitSignature} disabled={loading || !signatureName.trim() || !locationStr.trim() || !agreedToFile}>{loading ? "Submitting..." : "Sign & Complete"}</button></div>
+                  <div className="text-center mt-4"><button className="btn btn-success btn-lg px-4 shadow-sm w-100 d-md-inline-block" style={{ maxWidth: '100%' }} onClick={handleSubmitSignature} disabled={loading || !signatureName.trim() || !locationStr.trim() || !agreedToFile}>{loading ? "Submitting..." : "Sign & Complete"}</button></div>
                 </div>
               )}
             </div>
