@@ -85,39 +85,41 @@ export const generateRequestDetailsDraft = async (config) => {
     }
 
     let template;
+    let bodyTemplate;
 
-    switch(templateType.toLowerCase()) {
-      case 'personal':
-        template = emailTemplates.personalTaxRequestDetails;
-        break;
-      case 'corporate':
-        template = emailTemplates.corporateTaxRequestDetails;
-        break;
-      case 'cvitp':
-      default:
-        template = emailTemplates.cvitpRequestDetails;
-        break;
-    }
-
-    let bodyTemplate = template.bodyTemplate(uploadLink);
     switch(action) {
-        case 'requestDetails':
-            template = emailTemplates.cvitpRequestDetails;
-            break;
         case 'requestEsign':
-            template = emailTemplates.cvitpRequestEsign;
+            switch(templateType.toLowerCase()) {
+                case 'personal': template = emailTemplates.personalRequestEsign; break;
+                case 'corporate': template = emailTemplates.corporateRequestEsign; break;
+                case 'cvitp':
+                default: template = emailTemplates.cvitpRequestEsign; break;
+            }
             bodyTemplate = template.bodyTemplate(customData.generatedLink, customData.taxYear, customData.clientName);
             break;
+            
         case 'requestDocument':
+            switch(templateType.toLowerCase()) {
+                case 'personal': template = emailTemplates.personalRequestDocument; break;
+                case 'corporate': template = emailTemplates.corporateRequestDocument; break;
+                case 'cvitp':
+                default: template = emailTemplates.cvitpRequestDocument; break;
+            }
             const customerFolderName = (customerData.name || customerData.businessNumber || customerData.corporateName || 'Unknown_Customer').replace(/[\\/:*?"<>|]/g, '_');
-            template = emailTemplates.requestDocument;
             bodyTemplate = template.bodyTemplate(customerFolderName, uploadLink);
             break;
+            
+        case 'requestDetails':
         default:
-            template = emailTemplates.cvitpRequestDetails;
+            switch(templateType.toLowerCase()) {
+                case 'personal': template = emailTemplates.personalRequestDetails; break;
+                case 'corporate': template = emailTemplates.corporateRequestDetails; break;
+                case 'cvitp':
+                default: template = emailTemplates.cvitpRequestDetails; break;
+            }
+            bodyTemplate = template.bodyTemplate(uploadLink);
             break;
     }
-
 
     // Return the configuration object instead of launching an email client
     return {

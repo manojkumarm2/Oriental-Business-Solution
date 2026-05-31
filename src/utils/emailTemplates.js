@@ -2,6 +2,7 @@
 // This utility provides pre-formatted email bodies for different document request scenarios
 
 export const emailTemplates = {
+    // --- 1. REQUEST DETAILS TEMPLATES ---
     cvitpRequestDetails: {
         subject: 'CVITP Tax Clinic - Required Documents Checklist',
         bodyTemplate: (uploadLink) => `
@@ -66,11 +67,87 @@ export const emailTemplates = {
         <strong>CVITP Tax Clinic Team</strong><br>
         Oriental Business Solutions Inc.<br>
         📧 <a href="mailto:cvitp-team@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">cvitp-team@orientalbiz.ca</a><br>
-        📞 <a href="tel:+16478475477" style="color: #0056b3; text-decoration: none;">+1 (647) 847-5477</a><br>    
-        Contact us for any queries</p>
+        📞 <a href="tel:+16478475477" style="color: #0056b3; text-decoration: none;">+1 (647) 847-5477</a><br>
+        Available: Mon - Fri 9AM to 6PM</p>
     </div>`
     },
 
+    personalRequestDetails: {
+        subject: 'Personal Tax Return - Required Documents',
+        bodyTemplate: (uploadLink) => `
+    <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333333; line-height: 1.6; max-width: 600px;">
+        <p>Thank you for choosing Oriental Business Solutions for your personal tax filing needs.</p>
+        <p>To prepare your personal tax return accurately, we require the following documents and information:</p>
+        <p><strong>📑 Tax Slips & Documents:</strong><br>
+        1. Notice of Assessment from previous year<br>
+        2. T4 slips (Employment Income)<br>
+        3. T5 slips (Investment Income)<br>
+        4. T4A slips (Other Income)<br>
+        5. Receipts for deductible expenses<br>
+        6. Mortgage interest statements<br>
+        7. Property tax documents<br>
+        8. Charitable donation receipts</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 400px; border: 1px solid #e1e1e1; border-radius: 8px; font-family: Arial, sans-serif; margin-top: 20px; margin-bottom: 20px;">
+          <tr>
+            <td>
+              <a href="${uploadLink}" style="text-decoration: none; color: inherit; display: block;">
+                <div style="padding: 15px; background-color: #f9f9f9; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+                  <h3 style="margin: 0 0 5px 0; font-size: 16px; color: #333333;">📤 Secure Document Upload</h3>
+                  <p style="margin: 0; font-size: 14px; color: #666666;">Click here to securely upload your documents to Orientalbiz.</p>
+                </div>
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p>Or email them to: <a href="mailto:info@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">info@orientalbiz.ca</a></p>
+        <p>Best regards,<br>
+        <strong>Personal Tax Expert Team</strong><br>
+        Oriental Business Solutions Inc.<br>
+        📧 <a href="mailto:info@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">info@orientalbiz.ca</a><br>
+        📞 <a href="tel:+16478556177" style="color: #0056b3; text-decoration: none;">+1 (647) 855-6177</a></p>
+    </div>`
+    },
+
+    corporateRequestDetails: {
+        subject: 'Corporate Tax Return - Required Documents',
+        bodyTemplate: (uploadLink) => `
+    <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333333; line-height: 1.6; max-width: 600px;">
+        <p>Thank you for entrusting Oriental Business Solutions with your corporate tax filing.</p>
+        <p>To prepare your corporate tax return, we will need the following:</p>
+        <p><strong>📑 Financial Documents:</strong><br>
+        1. Financial Statements (Balance Sheet & Income Statement)<br>
+        2. General Ledger<br>
+        3. Bank Statements & Reconciliations<br>
+        4. Invoices & Receipts<br>
+        5. T4 and T4A Slips for Employees<br>
+        6. T5 Slips (if applicable)<br>
+        7. Previous Year's Tax Return<br>
+        8. Corporate Registration Documents</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 400px; border: 1px solid #e1e1e1; border-radius: 8px; font-family: Arial, sans-serif; margin-top: 20px; margin-bottom: 20px;">
+          <tr>
+            <td>
+              <a href="${uploadLink}" style="text-decoration: none; color: inherit; display: block;">
+                <div style="padding: 15px; background-color: #f9f9f9; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+                  <h3 style="margin: 0 0 5px 0; font-size: 16px; color: #333333;">📤 Secure Document Upload</h3>
+                  <p style="margin: 0; font-size: 14px; color: #666666;">Click here to securely upload your documents to Orientalbiz.</p>
+                </div>
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p>Or contact us at: <a href="mailto:info@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">info@orientalbiz.ca</a></p>
+        <p>We look forward to assisting you.<br><br>
+        Best regards,<br>
+        <strong>Corporate Tax Expert Team</strong><br>
+        Oriental Business Solutions Inc.<br>
+        📧 <a href="mailto:info@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">info@orientalbiz.ca</a><br>
+        📞 <a href="tel:+16478556177" style="color: #0056b3; text-decoration: none;">+1 (647) 855-6177</a></p>
+    </div>`
+    },
+
+    // --- 2. REQUEST ESIGN TEMPLATES ---
     cvitpRequestEsign: {
         subject: `Action Required: Review & Sign Your Tax Return Draft`,
         bodyTemplate: (generatedLink, taxYear, clientName) => `
@@ -87,66 +164,61 @@ export const emailTemplates = {
         <strong>CVITP Tax Clinic Team</strong><br>
         Oriental Business Solutions Inc.<br>
         📧 <a href="mailto:cvitp-team@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">cvitp-team@orientalbiz.ca</a><br>
-        📞 <a href="tel:+16478475477" style="color: #0056b3; text-decoration: none;">+1 (647) 847-5477</a><br>    
-        Contact us for any queries</p>
+        📞 <a href="tel:+16478475477" style="color: #0056b3; text-decoration: none;">+1 (647) 847-5477</a><br>
+        Available: Mon - Fri 9AM to 6PM</p>
         </div>
       `
     },
 
-    personalTaxRequestDetails: {
-        subject: 'Personal Tax Return - Required Documents',
-        bodyTemplate: (uploadLink) => `Thank you for choosing Oriental Business Solutions for your personal tax filing needs.
-
-To prepare your personal tax return accurately, we require the following documents and information:
-
-1. Notice of Assessment from previous year
-2. T4 slips (Employment Income)
-3. T5 slips (Investment Income)
-4. T4A slips (Other Income)
-5. Receipts for deductible expenses
-6. Mortgage interest statements
-7. Property tax documents
-8. Charitable donation receipts
-
-📤 Secure Document Upload Link:
-${uploadLink}
-
-Or email them to: info@orientalbiz.ca
-
-
-Best regards,
-Oriental Business Solutions Inc.`
+    personalRequestEsign: {
+        subject: `Action Required: Review & Sign Your Personal Tax Return Draft`,
+        bodyTemplate: (generatedLink, taxYear, clientName) => `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <p>Hello ${clientName},</p>
+          <p>Our team has completed the draft for your <strong>${taxYear}</strong> personal tax return.</p>
+          <p>Please use our secure client portal link below to review the draft and supply your authorization signature:</p>
+          <div style="margin: 20px 0;">
+            <a href="${generatedLink}" style="display: inline-block; padding: 12px 24px; background-color: #198754; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">Review &amp; Sign Tax Return</a>
+          </div>
+          <p style="font-size: 10px;">If the button doesn't work, you can copy and paste the following link into your browser:
+          <a href="${generatedLink}" style="color: #0d6efd; text-decoration: none;">${generatedLink}</a></p>
+        <p>Best regards,<br>
+        <strong>Personal Tax Expert Team</strong><br>
+        Oriental Business Solutions Inc.<br>
+        📧 <a href="mailto:info@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">info@orientalbiz.ca</a><br>
+        📞 <a href="tel:+16478556177" style="color: #0056b3; text-decoration: none;">+1 (647) 855-6177</a></p>
+        </div>
+      `
     },
 
-    corporateTaxRequestDetails: {
-        subject: 'Corporate Tax Return - Required Documents',
-        bodyTemplate: (uploadLink) => `Thank you for entrusting Oriental Business Solutions with your corporate tax filing.
-
-To prepare your corporate tax return, we will need the following:
-
-1. Financial Statements (Balance Sheet & Income Statement)
-2. General Ledger
-3. Bank Statements & Reconciliations
-4. Invoices & Receipts
-5. T4 and T4A Slips for Employees
-6. T5 Slips (if applicable)
-7. Previous Year's Tax Return
-8. Corporate Registration Documents
-
-📤 Secure Document Upload Link:
-${uploadLink}
-
-Or contact us at: info@orientalbiz.ca
-
-We look forward to assisting you.`
+    corporateRequestEsign: {
+        subject: `Action Required: Review & Sign Your Corporate Tax Return Draft`,
+        bodyTemplate: (generatedLink, taxYear, clientName) => `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <p>Hello ${clientName},</p>
+          <p>Our team has completed the draft for your <strong>${taxYear}</strong> corporate tax return.</p>
+          <p>Please use our secure client portal link below to review the draft and supply your authorization signature:</p>
+          <div style="margin: 20px 0;">
+            <a href="${generatedLink}" style="display: inline-block; padding: 12px 24px; background-color: #198754; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">Review &amp; Sign Tax Return</a>
+          </div>
+          <p style="font-size: 10px;">If the button doesn't work, you can copy and paste the following link into your browser:
+          <a href="${generatedLink}" style="color: #0d6efd; text-decoration: none;">${generatedLink}</a></p>
+        <p>Best regards,<br>
+        <strong>Corporate Tax Expert Team</strong><br>
+        Oriental Business Solutions Inc.<br>
+        📧 <a href="mailto:info@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">info@orientalbiz.ca</a><br>
+        📞 <a href="tel:+16478556177" style="color: #0056b3; text-decoration: none;">+1 (647) 855-6177</a></p>
+        </div>
+      `
     },
 
-    requestDocument: {
-        subject: 'Please upload your documents',
+    // --- 3. REQUEST DOCUMENT TEMPLATES ---
+    cvitpRequestDocument: {
+        subject: 'Action Required: Please upload your CVITP Tax documents',
         bodyTemplate: (customerFolderName, uploadLink) => `
         <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
           <p>Hi ${customerFolderName},</p>
-          <p>Please use the following link to securely upload your documents:</p>
+          <p>Please use the following link to securely upload any additional documents for your CVITP tax file:</p>
           <div style="margin: 20px 0;">
             <a href="${uploadLink}" style="display: inline-block; padding: 12px 24px; background-color: #0d6efd; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">Securely Upload Documents</a>
           </div>
@@ -154,7 +226,59 @@ We look forward to assisting you.`
           <p style="word-break: break-all; background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef;">
             <a href="${uploadLink}" style="color: #0d6efd; text-decoration: none;">${uploadLink}</a>
           </p>
-          <p>Thank you.</p>
+          <p>Thank you.<br><br>
+          Best regards,<br>
+          <strong>CVITP Tax Clinic Team</strong><br>
+          Oriental Business Solutions Inc.<br>
+          📧 <a href="mailto:cvitp-team@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">cvitp-team@orientalbiz.ca</a><br>
+          📞 <a href="tel:+16478475477" style="color: #0056b3; text-decoration: none;">+1 (647) 847-5477</a><br>
+          Available: Mon - Fri 9AM to 6PM</p>
+        </div>
+      `
+    },
+
+    personalRequestDocument: {
+        subject: 'Action Required: Please upload your Personal Tax documents',
+        bodyTemplate: (customerFolderName, uploadLink) => `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <p>Hi ${customerFolderName},</p>
+          <p>Please use the following link to securely upload any additional documents for your personal tax file:</p>
+          <div style="margin: 20px 0;">
+            <a href="${uploadLink}" style="display: inline-block; padding: 12px 24px; background-color: #0d6efd; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">Securely Upload Documents</a>
+          </div>
+          <p>If the button doesn't work, you can copy and paste the following link into your browser:</p>
+          <p style="word-break: break-all; background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef;">
+            <a href="${uploadLink}" style="color: #0d6efd; text-decoration: none;">${uploadLink}</a>
+          </p>
+          <p>Thank you.<br><br>
+          Best regards,<br>
+          <strong>Personal Tax Expert Team</strong><br>
+          Oriental Business Solutions Inc.<br>
+          📧 <a href="mailto:info@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">info@orientalbiz.ca</a><br>
+          📞 <a href="tel:+16478556177" style="color: #0056b3; text-decoration: none;">+1 (647) 855-6177</a></p>
+        </div>
+      `
+    },
+
+    corporateRequestDocument: {
+        subject: 'Action Required: Please upload your Corporate Tax documents',
+        bodyTemplate: (customerFolderName, uploadLink) => `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <p>Hi ${customerFolderName},</p>
+          <p>Please use the following link to securely upload any additional documents for your corporate tax file:</p>
+          <div style="margin: 20px 0;">
+            <a href="${uploadLink}" style="display: inline-block; padding: 12px 24px; background-color: #0d6efd; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">Securely Upload Documents</a>
+          </div>
+          <p>If the button doesn't work, you can copy and paste the following link into your browser:</p>
+          <p style="word-break: break-all; background-color: #f8f9fa; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef;">
+            <a href="${uploadLink}" style="color: #0d6efd; text-decoration: none;">${uploadLink}</a>
+          </p>
+          <p>Thank you.<br><br>
+          Best regards,<br>
+          <strong>Corporate Tax Expert Team</strong><br>
+          Oriental Business Solutions Inc.<br>
+          📧 <a href="mailto:info@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">info@orientalbiz.ca</a><br>
+          📞 <a href="tel:+16478556177" style="color: #0056b3; text-decoration: none;">+1 (647) 855-6177</a></p>
         </div>
       `
     }

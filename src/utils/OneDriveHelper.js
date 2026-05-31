@@ -19,52 +19,46 @@ const hideLoadingOverlay = () => {
     if (loader) loader.remove();
 };
 
+const pendingRequests = new Map();
+
 // Generate a secure upload link without sending email - returns the upload URL
-export const generateSecureUploadLink = async (msalInstance, account, customerData, taxType = 'Personal') => {
+export const generateSecureUploadLink = async (msalInstance, account, customerData, taxType = 'personal') => {
     if (!account) {
         throw new Error('Please sign in first to generate upload link.');
     }
 
-    showLoadingOverlay();
+    // Prevent duplicate concurrent executions (e.g., from React StrictMode double-invoking useEffect)
+    const customerId = customerData.id || customerData._id || customerData.name || 'unknown';
+    const requestKey = `${account.username}_${taxType}_${customerId}`;
+
+    if (pendingRequests.has(requestKey)) {
+        return pendingRequests.get(requestKey);
+    }
+
+    const executionPromise = (async () => {
+        showLoadingOverlay();
 
     try {
         const tokenResponse = await msalInstance.acquireTokenSilent({ scopes: ['Files.ReadWrite.All'], account });
         const accessToken = tokenResponse.accessToken;
 
-        // 1. Determine parent folder name by taxType
-        let parentFolderName = 'Personal Tax Documents';
-        if (taxType === 'Corporate') parentFolderName = 'Corporate Documents';
-        else if (taxType === 'CVITP') parentFolderName = 'CVITP Documents';
+        // 1. Determine folder names
+        const rootFolderName = `${(account.username || account.name).replace(/[\\/:*?"<>|]/g, '_')}_Requested_Docs`;
+        let subFolderName = 'Personal_Tax_Docs';
+        if (taxType.toLowerCase() === 'corporate') subFolderName = 'Corporate_Tax_Docs';
+        else if (taxType.toLowerCase() === 'cvitp') subFolderName = 'Cvitp_Tax_Docs';
 
-    // 2. Try to find parent folder in own drive
-    let parentFolderId = null;
-    let parentFolder = null;
+    // 2. Try to find root folder in own drive
+    let rootFolderId = null;
     
-    // Search in own drive root
-    let resp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root/children?$filter=folder ne null`, {
+    // Search in own drive root by direct path
+    let resp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${encodeURIComponent(rootFolderName)}`, {
         headers: { 'Authorization': 'Bearer ' + accessToken }
     });
-    if (!resp.ok) throw new Error('Failed to list root folders');
-    let data = await resp.json();
-    parentFolder = (data.value || []).find(f => f.name === parentFolderName);
-    if (parentFolder) {
-        parentFolderId = parentFolder.id;
+    if (resp.ok) {
+        const data = await resp.json();
+        rootFolderId = data.id;
     } else {
-        // 3. If not found, check sharedWithMe
-        resp = await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe', {
-            headers: { 'Authorization': 'Bearer ' + accessToken }
-        });
-        if (!resp.ok) throw new Error('Failed to list shared folders');
-        data = await resp.json();
-        // Find shared folder with matching name
-        parentFolder = (data.value || []).find(f => f.name === parentFolderName && f.remoteItem && f.remoteItem.folder);
-        if (parentFolder && parentFolder.remoteItem) {
-            parentFolderId = parentFolder.remoteItem.id;
-        }
-    }
-    
-    // 4. If still not found, create in own drive
-    if (!parentFolderId) {
         resp = await fetch('https://graph.microsoft.com/v1.0/me/drive/root/children', {
             method: 'POST',
             headers: {
@@ -72,27 +66,51 @@ export const generateSecureUploadLink = async (msalInstance, account, customerDa
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                name: parentFolderName,
+                name: rootFolderName,
                 folder: {},
                 '@microsoft.graph.conflictBehavior': 'rename'
             })
         });
-        if (!resp.ok) throw new Error('Failed to create parent folder');
-        data = await resp.json();
-        parentFolderId = data.id;
+        if (!resp.ok) throw new Error('Failed to create root folder');
+        const data = await resp.json();
+        rootFolderId = data.id;
+    }
+
+    // 4.5. Find or create taxType subfolder under root folder
+    let parentFolderId = null;
+    let parentChildrenResp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${rootFolderId}:/${encodeURIComponent(subFolderName)}`, {
+        headers: { 'Authorization': 'Bearer ' + accessToken }
+    });
+    if (parentChildrenResp.ok) {
+        const parentChildrenData = await parentChildrenResp.json();
+        parentFolderId = parentChildrenData.id;
+    } else {
+        let createParentResp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${rootFolderId}/children`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: subFolderName,
+                folder: {},
+                '@microsoft.graph.conflictBehavior': 'rename'
+            })
+        });
+        if (!createParentResp.ok) throw new Error('Failed to create subfolder');
+        let createParentData = await createParentResp.json();
+        parentFolderId = createParentData.id;
     }
 
     // 5. Find or create customer folder under parent
     const customerFolderName = (customerData.name || customerData.businessNumber || customerData.corporateName || 'Unknown_Customer').replace(/[\\/:*?"<>|]/g, '_');
     let customerFolderId = null;
-    let childrenResp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${parentFolderId}/children?$filter=folder ne null`, {
+    let childrenResp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${parentFolderId}:/${encodeURIComponent(customerFolderName)}`, {
         headers: { 'Authorization': 'Bearer ' + accessToken }
     });
-    if (!childrenResp.ok) throw new Error('Failed to list customer folders');
-    let childrenData = await childrenResp.json();
-    let customerFolder = (childrenData.value || []).find(f => f.name === customerFolderName);
-    if (customerFolder) {
-        customerFolderId = customerFolder.id;
+    if (childrenResp.ok) {
+        const childrenData = await childrenResp.json();
+        customerFolderId = childrenData.id;
     } else {
         // Create customer folder
         let createCustomerResp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${parentFolderId}/children`, {
@@ -116,14 +134,12 @@ export const generateSecureUploadLink = async (msalInstance, account, customerDa
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
     let dateFolderId = null;
-    let dateChildrenResp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${customerFolderId}/children?$filter=folder ne null`, {
+    let dateChildrenResp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${customerFolderId}:/${encodeURIComponent(dateStr)}`, {
         headers: { 'Authorization': 'Bearer ' + accessToken }
     });
-    if (!dateChildrenResp.ok) throw new Error('Failed to list date folders');
-    let dateChildrenData = await dateChildrenResp.json();
-    let dateFolder = (dateChildrenData.value || []).find(f => f.name === dateStr);
-    if (dateFolder) {
-        dateFolderId = dateFolder.id;
+    if (dateChildrenResp.ok) {
+        const dateChildrenData = await dateChildrenResp.json();
+        dateFolderId = dateChildrenData.id;
     } else {
         // Create date folder
         let createDateResp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${customerFolderId}/children`, {
@@ -160,5 +176,14 @@ export const generateSecureUploadLink = async (msalInstance, account, customerDa
     return linkData.link.webUrl;
     } finally {
         hideLoadingOverlay();
+    }
+    })();
+
+    pendingRequests.set(requestKey, executionPromise);
+    
+    try {
+        return await executionPromise;
+    } finally {
+        pendingRequests.delete(requestKey);
     }
 };
