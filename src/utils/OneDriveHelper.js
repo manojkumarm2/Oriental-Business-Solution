@@ -1,24 +1,3 @@
-// UI Helpers for global loading spinner
-const showLoadingOverlay = (message = "Generating secure upload link. Please wait...") => {
-    const loaderId = 'global-spinner-overlay';
-    if (document.getElementById(loaderId)) return;
-    
-    const loader = document.createElement('div');
-    loader.id = loaderId;
-    loader.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(255, 255, 255, 0.8); z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center;';
-    loader.innerHTML = `
-        <div style="border: 4px solid rgba(0, 0, 0, 0.1); width: 50px; height: 50px; border-radius: 50%; border-left-color: #0056b3; animation: spin-overlay 1s linear infinite;"></div>
-        <p style="margin-top: 15px; font-family: sans-serif; color: #333; font-weight: 500; font-size: 16px;">${message}</p>
-        <style>@keyframes spin-overlay { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-    `;
-    document.body.appendChild(loader);
-};
-
-const hideLoadingOverlay = () => {
-    const loader = document.getElementById('global-spinner-overlay');
-    if (loader) loader.remove();
-};
-
 const pendingRequests = new Map();
 
 // Generate a secure upload link without sending email - returns the upload URL
@@ -36,7 +15,6 @@ export const generateSecureUploadLink = async (msalInstance, account, customerDa
     }
 
     const executionPromise = (async () => {
-        showLoadingOverlay();
 
     try {
         const tokenResponse = await msalInstance.acquireTokenSilent({ scopes: ['Files.ReadWrite.All'], account });
@@ -175,7 +153,7 @@ export const generateSecureUploadLink = async (msalInstance, account, customerDa
     const linkData = await linkResponse.json();
     return linkData.link.webUrl;
     } finally {
-        hideLoadingOverlay();
+        // finally logics (e.g., hide loading) can go here if needed
     }
     })();
 

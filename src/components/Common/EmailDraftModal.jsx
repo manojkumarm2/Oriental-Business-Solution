@@ -47,9 +47,10 @@ const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action 
   };
 
   if (!emailDraft) return (
-    <div className="modal-backdrop fade show d-flex justify-content-center align-items-center" style={{ zIndex: 1600, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="spinner-border text-light" role="status">
-        <span className="visually-hidden">Loading...</span>
+    <div className="modal-backdrop fade show d-flex justify-content-center align-items-center bg-white" style={{ zIndex: 1600, opacity: 0.8 }}>
+      <div className="text-center">
+        <div className="spinner-border text-primary mb-2" role="status" aria-hidden="true"></div>
+        <div className="fw-bold text-secondary">Preparing email draft...</div>
       </div>
     </div>
   );
@@ -57,7 +58,15 @@ const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action 
   return (
     <div className="modal-backdrop fade show" style={{ zIndex: 1600, display: 'block', opacity: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
       <div className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-        <div className="modal-content">
+        <div className="modal-content position-relative">
+          {isSending && (
+            <div className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white" style={{ zIndex: 10, opacity: 0.8, borderRadius: 'inherit' }}>
+              <div className="text-center">
+                <div className="spinner-border text-primary mb-2" role="status" aria-hidden="true"></div>
+                <div className="fw-bold text-secondary">Sending email...</div>
+              </div>
+            </div>
+          )}
           <div className="modal-header">
             <h5 className="modal-title">Review Email Draft</h5>
             <button type="button" className="btn-close" onClick={onClose} disabled={isSending}></button>
