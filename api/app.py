@@ -155,6 +155,8 @@ def init_sqlite_db():
         columns = [col[1] for col in cursor.fetchall()]
         if 'email' not in columns:
             cursor.execute("ALTER TABLE cvitpStatus ADD COLUMN email TEXT")
+        if 'yearsOfFiling' not in columns:
+            cursor.execute("ALTER TABLE cvitpStatus ADD COLUMN yearsOfFiling TEXT DEFAULT ''")
                 
         conn.commit()
 

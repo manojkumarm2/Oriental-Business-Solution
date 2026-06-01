@@ -96,7 +96,7 @@ const CvitpPage = () => {
   const [editingEntryId, setEditingEntryId] = useState(null);
   
   const [newCustomer, setNewCustomer] = useState({
-    name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: ''
+    name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '', yearsOfFiling: []
   });
 
   const msalInstance = useMemo(() => new PublicClientApplication(msalConfig), []);
@@ -122,6 +122,12 @@ const CvitpPage = () => {
   
   // Tab Navigation Handling Parameter ('dialer' or 'history')
   const [activeSubTab, setActiveSubTab] = useState('dialer');
+
+  // --- DYNAMIC YEARS OF FILING OPTIONS (LAST 10 YEARS) ---
+  const last10Years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 10 }, (_, i) => (currentYear - i).toString());
+  }, []);
 
   const callAgentRef = useRef(null);
   const callRef = useRef(null);
@@ -237,7 +243,7 @@ const CvitpPage = () => {
   const handleOpenAddModal = () => {
     setIsEditMode(false);
     setEditingEntryId(null);
-    setNewCustomer({ name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '' });
+    setNewCustomer({ name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '', yearsOfFiling: [] });
     setShowAddModal(true);
   };
 
@@ -252,7 +258,8 @@ const CvitpPage = () => {
       assignedTo: entry.assignedTo || '',
       coin: entry.coin || '',
       receivedDate: entry.receivedDate || '',
-      filledDate: entry.filledDate || ''
+      filledDate: entry.filledDate || '',
+      yearsOfFiling: entry.yearsOfFiling ? entry.yearsOfFiling.split(',').map(s => s.trim()) : []
     });
     setShowAddModal(true);
   };
@@ -265,19 +272,21 @@ const CvitpPage = () => {
       const endpoint = isEditMode ? `/api/cvitp/${editingEntryId}` : '/api/cvitp';
       const method = isEditMode ? 'PUT' : 'POST';
 
+      const payload = { ...newCustomer, yearsOfFiling: newCustomer.yearsOfFiling.join(', ') };
+
       const response = await fetch(getApiUrl(endpoint), {
         method: method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${tokenResponse.accessToken}`
         },
-        body: JSON.stringify(newCustomer)
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
         setMessage(isEditMode ? "CVITP Tax Record updated successfully." : "CVITP Tax Record generated successfully.");
         setShowAddModal(false);
-        setNewCustomer({ name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '' });
+        setNewCustomer({ name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '', yearsOfFiling: [] });
         fetchCvitpEntries();
       } else {
         const data = await response.json();
@@ -308,9 +317,9 @@ const CvitpPage = () => {
 
   const exportToCSV = () => {
     if (taxEntries.length === 0) return;
-    const headers = ["ID", "Name", "Mobile", "Email", "Status", "Assigned To", "Coin Reference", "Received Date", "Filed Date", "Created At"];
+    const headers = ["ID", "Name", "Mobile", "Email", "Status", "Assigned To", "Coin Reference", "Received Date", "Filed Date", "Years of Filing", "Created At"];
     const rows = taxEntries.map(entry => [
-      entry.id, entry.name, entry.mobile, entry.email || '', entry.status, entry.assignedTo, entry.coin, entry.receivedDate, entry.filledDate, entry.createdAt
+      entry.id, entry.name, entry.mobile, entry.email || '', entry.status, entry.assignedTo, entry.coin, entry.receivedDate, entry.filledDate, entry.yearsOfFiling || '', entry.createdAt
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," 
@@ -726,7 +735,7 @@ const CvitpPage = () => {
                   </div>
 
                   {/* Mobile Card View */}
-                  <div className="d-block d-md-none p-3 bg-light">
+              <div className="d-block d-md-none p-3 bg-light">
                     {filteredEntries.length === 0 && !isLoadingEntries ? (
                       <div className="card mb-3 mobile-record-card shadow-sm border-0">
                         <div className="card-body text-center py-4">
@@ -735,12 +744,15 @@ const CvitpPage = () => {
                       </div>
                     ) : (
                       filteredEntries.map((entry) => (
-                        <div key={entry.id} className="card mb-3 mobile-record-card shadow-sm border-0">
+                    <div key={entry.id} className="card mb-3 mobile-record-card shadow-sm border-0">
                           <div className="card-body p-3">
                             <div className="d-flex justify-content-between align-items-start mb-2">
                               <div>
                                 <h6 className="mb-1 fw-bold text-dark">{entry.name}</h6>
-                                <div className="small text-muted" style={{fontSize: '11px'}}>Updated: {new Date(entry.updatedAt).toLocaleDateString()}</div>
+                                <div className="mt-1">
+                                  <button className="btn btn-link btn-sm p-0 text-decoration-none d-block text-start" onClick={() => setDialNumber(entry.mobile)}>📞 {entry.mobile}</button>
+                                  {entry.email && <div className="text-muted small mt-1" style={{fontSize: '11px'}}>✉️ {entry.email}</div>}
+                                </div>
                               </div>
                               <div className="dropdown">
                                 <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="window">Actions</button>
@@ -753,14 +765,12 @@ const CvitpPage = () => {
                                 </ul>
                               </div>
                             </div>
-                            <div className="mb-2">
-                              <button className="btn btn-link btn-sm p-0 text-decoration-none d-block text-start" onClick={() => setDialNumber(entry.mobile)}>📞 {entry.mobile}</button>
-                              {entry.email && <div className="text-muted small mt-1" style={{fontSize: '11px'}}>✉️ {entry.email}</div>}
-                            </div>
-                            <div className="d-flex justify-content-between align-items-center mb-2">
+                            <div className="d-flex justify-content-between align-items-center mb-1">
                               <div className="small">📥 <span className="text-muted">{entry.receivedDate || '-'}</span></div>
                               <div className="small">✅ <span className="text-success fw-bold">{entry.filledDate || '-'}</span></div>
+                              <div className="small">🗓️ <span className="text-muted">{entry.yearsOfFiling || '-'}</span></div>
                             </div>
+                            <div className="small text-muted mb-2" style={{fontSize: '11px'}}>Updated: {new Date(entry.updatedAt).toLocaleDateString()}</div>
                             <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
                               <span className={`badge px-2 py-1 fs-7 fw-bold ${entry.status === 'Completed' || entry.status === 'eSigned' ? 'bg-success-subtle text-success border border-success' : entry.status === 'Processing' ? 'bg-warning-subtle text-warning border border-warning' : entry.status === 'Draft Sent' ? 'bg-primary-subtle text-primary border border-primary' : entry.status === 'Cancelled' ? 'bg-secondary-subtle text-secondary border' : 'bg-danger-subtle text-danger border border-danger'}`}>{entry.status}</span>
                               <span className="text-dark small fw-medium text-truncate" style={{maxWidth: '120px'}} title={entry.assignedTo}>{entry.assignedTo || <span className="text-muted fst-italic">Unassigned</span>}</span>
@@ -776,9 +786,9 @@ const CvitpPage = () => {
                     <table className="table align-middle table-hover mb-0">
                       <thead className="table-light text-uppercase fs-7 text-muted">
                         <tr>
-                          <th>Taxpayer Name</th>
-                          <th>Contact Info</th>
+                          <th>Taxpayer Name & Contact</th>
                           <th>Dates (Recv / Filed)</th>
+                          <th>Years of Filing</th>
                           <th>Status</th>
                           <th>Assigned To</th>
                           <th>Actions</th>
@@ -795,21 +805,24 @@ const CvitpPage = () => {
                               
                               <td>
                                 <div className="fw-bold text-dark">{entry.name}</div>
-                                <span className="text-muted small" style={{fontSize: '11px'}}>Updated: {new Date(entry.updatedAt).toLocaleDateString()}</span>
-                              </td>
-                              <td>
-                                <button className="btn btn-link btn-sm p-0 text-decoration-none" onClick={() => setDialNumber(entry.mobile)}>
-                                  📞 {entry.mobile}
-                                </button>
-                                {entry.email && (
-                                  <div className="text-muted small mt-1" style={{ fontSize: '11px' }}>
-                                    ✉️ {entry.email}
-                                  </div>
-                                )}
+                                <div className="mt-1">
+                                  <button className="btn btn-link btn-sm p-0 text-decoration-none" onClick={() => setDialNumber(entry.mobile)}>
+                                    📞 {entry.mobile}
+                                  </button>
+                                  {entry.email && (
+                                    <div className="text-muted small mt-1" style={{ fontSize: '11px' }}>
+                                      ✉️ {entry.email}
+                                    </div>
+                                  )}
+                                </div>
                               </td>
                               <td>
                                 <div className="small">📥 <span className="text-muted">{entry.receivedDate || '-'}</span></div>
                                 <div className="small">✅ <span className="text-success fw-bold">{entry.filledDate || '-'}</span></div>
+                                <div className="text-muted small mt-1" style={{fontSize: '11px'}}>Updated: {new Date(entry.updatedAt).toLocaleDateString()}</div>
+                              </td>
+                              <td>
+                                <span className="text-dark small fw-medium">{entry.yearsOfFiling || '-'}</span>
                               </td>
                               <td>
                                 <span className={`badge px-2 py-1 fs-7 fw-bold ${
@@ -1084,6 +1097,21 @@ const CvitpPage = () => {
                             <input type="email" className="form-control" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} placeholder="john@example.com" />
                           </div>
                           <div className="row">
+                            <div className="col-12 mb-3">
+                              <label className="form-label small fw-bold text-muted">Years of Filing <span className="fw-normal text-secondary">(Hold Ctrl/Cmd to select multiple)</span></label>
+                              <select 
+                                multiple 
+                                className="form-select" 
+                                value={newCustomer.yearsOfFiling} 
+                                onChange={e => {
+                                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                  setNewCustomer({...newCustomer, yearsOfFiling: selected});
+                                }}
+                                size={4}
+                              >
+                                {last10Years.map(year => <option key={year} value={year}>{year}</option>)}
+                              </select>
+                            </div>
                             <div className="col-6 mb-3">
                               <label className="form-label small fw-bold text-muted">Coin ID Reference (Export Only)</label>
                               <input type="text" className="form-control" value={newCustomer.coin} onChange={e => setNewCustomer({...newCustomer, coin: e.target.value})} placeholder="C-99" />

@@ -198,15 +198,16 @@ class CvitpTaxManager:
             data.get('assignedTo', ''),
             data.get('coin', ''),
             data.get('receivedDate', ''),
-            data.get('filledDate', '')
+            data.get('filledDate', ''),
+            data.get('yearsOfFiling', '')
         )
         
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO cvitpStatus (
-                    name, mobile, email, status, assignedTo, coin, receivedDate, filledDate
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    name, mobile, email, status, assignedTo, coin, receivedDate, filledDate, yearsOfFiling
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, cvitp_data)
             conn.commit()
             return cursor.lastrowid
@@ -221,7 +222,7 @@ class CvitpTaxManager:
     @staticmethod
     def update(entry_id, updates):
         allowed_fields = [
-            'name', 'mobile', 'email', 'status', 'assignedTo', 'coin', 'receivedDate', 'filledDate'
+            'name', 'mobile', 'email', 'status', 'assignedTo', 'coin', 'receivedDate', 'filledDate', 'yearsOfFiling'
         ]
         filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
         if not filtered_updates:
