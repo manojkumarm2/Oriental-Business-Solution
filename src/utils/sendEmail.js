@@ -34,7 +34,7 @@ export const sendEmailViaGraphAPI = async (msalInstance, account, emailConfig, t
     };
 
     if (taxType.toLowerCase() === 'cvitp') {
-        mailPayload.from = {
+        mailPayload.message.from = {
             emailAddress: {
                 address: "cvitp-team@orientalbiz.ca"
             }
