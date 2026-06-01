@@ -5,6 +5,8 @@ const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action 
   const [emailDraft, setEmailDraft] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [isEditingBody, setIsEditingBody] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null);
+  const [draftError, setDraftError] = useState('');
 
   const customDataString = JSON.stringify(customData);
 
@@ -24,8 +26,7 @@ const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action 
         });
         setEmailDraft(draft);
       } catch (error) {
-        alert("Failed to prepare draft: " + error.message);
-        onClose(); // Close if we fail
+        setDraftError("Failed to prepare draft: " + error.message);
       }
     };
     
@@ -35,16 +36,29 @@ const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action 
   // 2. Handle the Graph API Send
   const handleSendEmail = async () => {
     setIsSending(true);
+    setSubmitStatus(null);
     try {
       await sendEmailViaGraphAPI(msalInstance, account, emailDraft, taxType.toLowerCase());
-      alert("Email sent successfully!");
-      onClose();
+      setSubmitStatus({ type: 'success', message: 'Email sent successfully!' });
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
-      alert("Failed to send email. Please try again.");
+      setSubmitStatus({ type: 'danger', message: 'Failed to send email. Please try again.' });
     } finally {
       setIsSending(false);
     }
   };
+
+  if (draftError) return (
+    <div className="modal-backdrop fade show d-flex justify-content-center align-items-center bg-white" style={{ zIndex: 1600, opacity: 0.9 }}>
+      <div className="text-center p-4 bg-light rounded shadow border" style={{ maxWidth: '400px' }}>
+        <div className="fs-1 text-danger mb-2">⚠️</div>
+        <div className="fw-bold text-danger mb-3">{draftError}</div>
+        <button className="btn btn-secondary px-4" onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
 
   if (!emailDraft) return (
     <div className="modal-backdrop fade show d-flex justify-content-center align-items-center bg-white" style={{ zIndex: 1600, opacity: 0.8 }}>
@@ -73,13 +87,18 @@ const EmailDraftModal = ({ customerData, msalInstance, account, onClose, action 
           </div>
           
           <div className="modal-body">
+            {submitStatus && (
+              <div className={`alert alert-${submitStatus.type} py-2`} role="alert">
+                {submitStatus.message}
+              </div>
+            )}
             <div className="row mb-3 align-items-end">
               <div className="col">
                 <label className="fw-bold form-label">To:</label>
                 <input type="email" className="form-control" value={emailDraft.to} onChange={(e) => setEmailDraft({ ...emailDraft, to: e.target.value })} disabled={isSending} />
               </div>
               <div className="col-auto">
-                <button className="btn btn-primary" onClick={handleSendEmail} disabled={isSending}>
+                <button className="btn btn-primary" onClick={handleSendEmail} disabled={isSending || submitStatus?.type === 'success'}>
                   {isSending ? 'Sending...' : 'Send Email'}
                 </button>
               </div>
