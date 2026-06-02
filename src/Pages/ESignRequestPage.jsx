@@ -10,7 +10,7 @@ const ESignRequestPage = () => {
   const state = location.state || {};
 
   // Controlled form states
-  const [customerId, setCustomerId] = useState(state.customerId || '');
+  const [customerId] = useState(state.customerId || '');
   const [taxType, setTaxType] = useState(state.taxType || 'Personal');
   const [taxYear, setTaxYear] = useState(new Date().getFullYear() - 1);
   const [onedriveId, setOnedriveId] = useState('');

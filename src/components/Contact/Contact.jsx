@@ -5,7 +5,6 @@ import { IoIosArrowForward } from "react-icons/io";
 import { Link } from "react-router-dom";
 import Navbar from "../Common/Navbar";
 import emailjs from "emailjs-com";
-import Logo from "../../Assets/contactlogo.png";
 import indiaFlag from "../../Assets/locations/india-flag.png";
 import usaFlag from "../../Assets/locations/usa-flag.png";
 import canadaFlag from "../../Assets/locations/canada-flag.png";

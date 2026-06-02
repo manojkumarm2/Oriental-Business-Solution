@@ -232,6 +232,7 @@ const CvitpPage = () => {
     if (account && isInitialized) {
       fetchCvitpEntries(account);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, isInitialized]);
 
   return (

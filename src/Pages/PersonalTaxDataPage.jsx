@@ -168,6 +168,7 @@ const PersonalTaxDataPage = () => {
     if (account && isInitialized) {
       fetchCustomers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, isInitialized]);
 
   const fetchCustomers = async () => {

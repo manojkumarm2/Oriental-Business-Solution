@@ -63,6 +63,7 @@ const Map_form = () => {
         <div className="row m-0 py-4">
           <div className="col-12 col-md-6 mt-3 ">
             <iframe
+              title="Google Maps Location"
               className="home_map"
               src={APP_CONFIG.gmapLink}
               style={{

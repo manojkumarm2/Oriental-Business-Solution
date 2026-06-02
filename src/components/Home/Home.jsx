@@ -2,16 +2,16 @@ import React from 'react';
 import Banner from './Banner';
 import Footer from '../Common/Footer.jsx';
 import TaxServices from '../Services/TaxServices';
-import About_us from '../Home/About_us.jsx';
-import Map_form from '../Home/Map_form.jsx';
+import AboutUs from '../Home/About_us.jsx';
+import MapForm from '../Home/Map_form.jsx';
 
 const Home = () => {
     return (
         <>
             <Banner />
-            <About_us/>
+            <AboutUs/>
             <TaxServices/>
-            <Map_form/>
+            <MapForm/>
             <Footer />
         </>
     )

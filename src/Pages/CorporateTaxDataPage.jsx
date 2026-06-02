@@ -104,7 +104,7 @@ const compareDueDates = (a, b, key = 'dueDate') => {
 
 const CorporateTaxDataPage = () => {
   const portalState = useTaxPortal();
-  const { account, msalInstance, isInitialized, error, setError, message, setMessage, setDialNumber, setIsDialerOpen, setRefreshTrigger, setEmailModalConfig } = portalState;
+  const { account, msalInstance, error, setError, message, setMessage, setDialNumber, setIsDialerOpen, setRefreshTrigger, setEmailModalConfig } = portalState;
 
   const [records, setRecords] = useState([]);
   const [searchText, setSearchText] = useState('');
@@ -129,6 +129,7 @@ const CorporateTaxDataPage = () => {
     if (account) {
       fetchRecords();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account]);
 
   const fetchRecords = async () => {

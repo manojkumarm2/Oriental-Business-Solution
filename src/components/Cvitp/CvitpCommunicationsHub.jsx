@@ -514,6 +514,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       if (syncTimerRef.current) { clearInterval(syncTimerRef.current); syncTimerRef.current = null; }
       if (window.__acsCallAgent) window.__acsCallAgent.off('incomingCall', incomingCallHandler);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, msalInstance, isInitialized, taxpayerPhoneMap]);
 
   return (
