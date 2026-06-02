@@ -1,6 +1,10 @@
 import os
-import re  # <-- FIX A: Added missing regular expression library
+import re
 import traceback
+import logging
+from logging.handlers import RotatingFileHandler
+import time
+import json
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 from jose import jwt
@@ -18,6 +22,75 @@ from call_manager import CallManager, CvitpCallHistoryManager
 app = Flask(__name__)
 application = app
 CORS(app)
+
+# --- Custom Logging Setup with Dynamic User Tracking ---
+class ContextualUserFilter(logging.Filter):
+    """
+    Injects the active request's user email dynamically 
+    into every log record context block.
+    """
+    def filter(self, record):
+        try:
+            from flask import g
+            # If g.user_email exists, use it; otherwise default to 'Anonymous'
+            record.user_email = getattr(g, 'user_email', 'Anonymous')
+        except RuntimeError:
+            # Fallback if a log happens outside of an active HTTP web request context
+            record.user_email = 'System'
+        return True
+
+def setup_logger():
+    obs_logger = logging.getLogger('obs_api')
+    obs_logger.setLevel(logging.INFO)
+    
+    # 🎯 Baked [%(user_email)s] directly into your global formatter token layout
+    formatter = logging.Formatter('[%(asctime)s] [%(user_email)s] %(levelname)s in %(module)s: %(message)s')
+    
+    # Resolved dynamic absolute path to prevent server permission routing errors
+    log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api.log')
+    file_handler = RotatingFileHandler(log_path, maxBytes=10*1024*1024, backupCount=5)
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+    
+    if not obs_logger.handlers:
+        # Link the contextual filter to the handler before attaching it to the logger
+        file_handler.addFilter(ContextualUserFilter())
+        obs_logger.addHandler(file_handler)
+    
+    return obs_logger
+
+logger = setup_logger()
+
+logger.info("=== Oriental Biz API Application Starting/Restarting ===")
+
+@app.before_request
+def log_request_info():
+    if request.method == 'OPTIONS':
+        return
+    g.start_time = time.time()
+    req_body = ""
+    try:
+        if request.is_json:
+            req_body = json.dumps(request.get_json(silent=True))
+        elif request.data:
+            req_body = request.data.decode('utf-8', errors='ignore')
+    except Exception as e:
+        req_body = f"<Error reading body: {str(e)}>"
+
+    logger.info(f"Incoming Request: {request.method} {request.url} | IP: {request.remote_addr}")
+    if req_body:
+        logger.info(f"Request Body: {req_body}")
+
+@app.after_request
+def log_response_info(response):
+    if request.method == 'OPTIONS':
+        return response
+    duration = time.time() - g.start_time if hasattr(g, 'start_time') else 0
+    logger.info(f"Response: {request.method} {request.url} | Status: {response.status_code} | Duration: {duration:.4f}s")
+    if response.status_code >= 400:
+        logger.error(f"Error Response Data: {response.get_data(as_text=True)}")
+    return response
+# ----------------------------
 
 TENANT_ID = os.getenv('AZURE_TENANT_ID', "c4ea64ee-34b6-4a18-9339-8aff143c12d4")
 CLIENT_ID = os.getenv('AZURE_CLIENT_ID', "ec39786f-9998-4a43-aef9-2d8148338b0b")
@@ -48,21 +121,16 @@ def validate_token(f):
             jwt.decode(token_str, jwks, algorithms=['RS256'], audience=unverified_claims.get('aud'))
             return f(*args, **kwargs)
         except Exception as e:
+            logger.warning(f"Token validation failed: {str(e)}")
             return jsonify({'message': 'Token is invalid', 'error': str(e)}), 401
     return decorated
 
 def run_e164_phone_migration(cursor):
-    """
-    FIX C: Wrapped formatting logic inside a structured function 
-    to prevent initialization crashes and scope isolation.
-    """
     target_tables = ['customers', 'corporate', 'cvitpStatus']
     fallback_number = "+10000000000"
 
     for table in target_tables:
         print(f"🔄 Starting E.164 formatting fallback migration for table: {table}")
-        
-        # Fetch the primary key and the current raw mobile string for every row
         cursor.execute(f"SELECT id, mobile FROM {table};")
         records = cursor.fetchall()
         
@@ -82,7 +150,7 @@ def run_e164_phone_migration(cursor):
                     elif len(digits_only) >= 10:
                         cleaned_number = f"+1{digits_only[-10:]}"
             
-            update_query = f"UPDATE {table} SET mobile = ? WHERE id = ?;"  # Use ? placeholder for SQLite compatibility
+            update_query = f"UPDATE {table} SET mobile = ? WHERE id = ?;"
             cursor.execute(update_query, (cleaned_number, record_id))
     print("✅ All target tables completely migrated to E.164 metrics.")
 
@@ -164,7 +232,6 @@ def init_sqlite_db():
         cursor.execute('CREATE TABLE IF NOT EXISTS acs_users (email TEXT PRIMARY KEY, acs_user_id TEXT NOT NULL, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP)')
         cursor.execute('CREATE TABLE IF NOT EXISTS bridged_calls (call_id TEXT PRIMARY KEY, loop_count INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)')
         
-        # Migrate tables to include shared_link
         for table in ['personal_tax', 'cvitp_tax']:
             cursor.execute(f"PRAGMA table_info({table})")
             columns = [col[1] for col in cursor.fetchall()]
@@ -187,7 +254,6 @@ def init_sqlite_db():
             if 'typed_name' not in columns:
                 cursor.execute(f"ALTER TABLE {table} ADD COLUMN typed_name TEXT")
                 
-        # Migrate cvitpStatus to include email
         cursor.execute("PRAGMA table_info(cvitpStatus)")
         columns = [col[1] for col in cursor.fetchall()]
         if 'email' not in columns:
@@ -195,14 +261,11 @@ def init_sqlite_db():
         if 'yearsOfFiling' not in columns:
             cursor.execute("ALTER TABLE cvitpStatus ADD COLUMN yearsOfFiling TEXT DEFAULT ''")
                 
-        # Migrate cvitpCallHistory to include duration
         cursor.execute("PRAGMA table_info(cvitpCallHistory)")
         columns = [col[1] for col in cursor.fetchall()]
         if 'duration' not in columns:
             cursor.execute("ALTER TABLE cvitpCallHistory ADD COLUMN duration INTEGER")
 
-        # FIX B: Indented migration layer inside active transactional context block safely
-        # run_e164_phone_migration(cursor)
         conn.commit()
 
 @app.route('/api/health', methods=['GET'])
@@ -231,6 +294,7 @@ def create_customer():
         customer_id = PersonalTaxManager.create(request.get_json())
         return jsonify({'id': customer_id, 'status': 'created'}), 201
     except ValueError as e:
+        logger.warning(f"Validation error in create_customer: {str(e)}")
         return jsonify({'message': str(e)}), 400
 
 @app.route('/api/customers/<customer_id>', methods=['PUT'])
@@ -275,6 +339,7 @@ def create_corporate():
         corp_id = CorporateTaxManager.create(request.get_json())
         return jsonify({'id': corp_id, 'status': 'created'}), 201
     except ValueError as e:
+        logger.warning(f"Validation error in create_corporate: {str(e)}")
         return jsonify({'message': str(e)}), 400
 
 @app.route('/api/corporate/<corporate_id>', methods=['PUT'])
@@ -304,9 +369,11 @@ def create_cvitp_entry():
         entry_id = CvitpTaxManager.create(request.get_json())
         return jsonify({'id': entry_id, 'status': 'created'}), 201
     except ValueError as e:
+        logger.warning(f"Validation error in create_cvitp_entry: {str(e)}")
         return jsonify({'message': str(e)}), 400
     except Exception as e:
-        return jsonify({'message': 'Server error handling record creation.', 'error': str(e)}), 500
+        logger.error(f"Server error handling CVITP record creation: {str(e)}")
+        return jsonify({'message': 'Server error handling record creation.'}), 500
 
 @app.route('/api/cvitp', methods=['GET'])
 @app.route('/cvitp', methods=['GET'])
@@ -323,9 +390,11 @@ def update_cvitp_entry(entry_id):
             return jsonify({'status': 'updated'}), 200
         return jsonify({'message': 'CVITP entry record not found'}), 404
     except ValueError as e:
+        logger.warning(f"Validation error in update_cvitp_entry: {str(e)}")
         return jsonify({'message': str(e)}), 400
     except Exception as e:
-        return jsonify({'message': 'Server error handling record update.', 'error': str(e)}), 500
+        logger.error(f"Server error handling CVITP record update: {str(e)}")
+        return jsonify({'message': 'Server error handling record update.'}), 500
 
 # --- Staff Dashboard Routes ---
 @app.route('/api/staff/initialize-document', methods=['POST'])
@@ -336,9 +405,11 @@ def initialize_document_flow():
         result = DocumentSignManager.initialize_document(request.get_json())
         return jsonify(result), 200
     except ValueError as e:
+        logger.warning(f"Validation error in initialize_document_flow: {str(e)}")
         return jsonify({"error": str(e)}), 400
     except Exception as err:
-        return jsonify({"error": f"Database initialization failed: {str(err)}"}), 500
+        logger.error(f"Server error handling initialize_document_flow: {str(err)}")
+        return jsonify({"error": "Database initialization failed."}), 500
 
 @app.route('/api/staff/esign-details/<tax_type>/<customer_id>', methods=['GET'])
 @app.route('/staff/esign-details/<tax_type>/<customer_id>', methods=['GET'])
@@ -350,9 +421,11 @@ def get_esign_details(tax_type, customer_id):
         record = DocumentSignManager.get_esign_details_by_customer_id(customer_id, tax_type)
         return jsonify(record), 200
     except ValueError as e:
+        logger.warning(f"Validation error in get_esign_details: {str(e)}")
         return jsonify({"error": str(e)}), 404
     except Exception as err:
-        return jsonify({"error": f"Failed to retrieve e-sign details: {str(err)}"}), 500
+        logger.error(f"Server error handling get_esign_details: {str(err)}")
+        return jsonify({"error": "Failed to retrieve e-sign details."}), 500
 
 # --- Customer Portal Public Routes ---
 @app.route('/api/public/review-tax/<token>', methods=['GET'])
@@ -368,8 +441,10 @@ def get_public_tax_document(token):
             "preview_url": record.get("shared_link") or f"https://onedrive.live.com/embed?resid={record.get('onedrive_item_id')}&action=embedview&wdDownloadButton=False&wdPrintButton=False"
         }), 200
     except ValueError as e:
+        logger.warning(f"Validation error in get_public_tax_document: {str(e)}")
         return jsonify({"error": str(e)}), 404
     except Exception as e:
+        logger.error(f"Server error in get_public_tax_document: {str(e)}")
         return jsonify({"error": "Server error processing document"}), 500
 
 @app.route('/api/public/review-tax/<token>/sign', methods=['POST'])
@@ -379,8 +454,10 @@ def sign_public_tax_document(token):
         result = DocumentSignManager.submit_signature(token, request.get_json())
         return jsonify(result), 200
     except ValueError as e:
+        logger.warning(f"Validation error in sign_public_tax_document: {str(e)}")
         return jsonify({"error": str(e)}), 400
     except Exception as e:
+        logger.error(f"Server error in sign_public_tax_document: {str(e)}")
         return jsonify({"error": "Server error submitting signature"}), 500
 
 # --- Call Management Routes ---
@@ -393,12 +470,14 @@ def get_acs_token():
 @app.route('/api/incomingCall', methods=['POST'])
 @app.route('/incomingCall', methods=['POST'])
 def incoming_call():
+    logger.info("Handling incoming call webhook.")
     response = CallManager.handle_incoming_webhook(request.get_json(force=True), request.url_root)
     return jsonify(response), 200
 
 @app.route("/api/callback", methods=["POST"])
 @app.route("/callback", methods=["POST"])
 def call_callback():
+    logger.info("Handling call lifecycle callback.")
     CallManager.handle_lifecycle_callback(request.json)
     return jsonify({"status": "success"}), 200
 
@@ -415,7 +494,8 @@ def get_cvitp_call_history():
         logs = CvitpCallHistoryManager.get_history()
         return jsonify(logs), 200
     except Exception as e:
-        return jsonify({'message': 'Failed retrieving communication logs.', 'error': str(e)}), 500
+        logger.error(f"Error retrieving call history: {str(e)}")
+        return jsonify({'message': 'Failed retrieving communication logs.'}), 500
 
 @app.route('/api/cvitp/call-history', methods=['POST'])
 @app.route('/cvitp/call-history', methods=['POST'])
@@ -425,14 +505,20 @@ def create_cvitp_call_log():
         log_id = CvitpCallHistoryManager.log_call(request.get_json())
         return jsonify({'id': log_id, 'status': 'logged'}), 201
     except ValueError as e:
+        logger.warning(f"Validation error in create_cvitp_call_log: {str(e)}")
         return jsonify({'message': str(e)}), 400
     except Exception as e:
-        return jsonify({'message': 'Failed archiving communication metric.', 'error': str(e)}), 500
+        logger.error(f"Error archiving communication metric: {str(e)}")
+        return jsonify({'message': 'Failed archiving communication metric.'}), 500
 
-@app.errorhandler(500)
+# Protected production environment strings from leaking to client responses
+@app.errorhandler(Exception)
 def handle_error(error):
-    traceback.print_exc()
-    return jsonify({'message': 'Server error.'}), 500
+    logger.exception(f"Unhandled Exception on {request.method} {request.url}")
+    return jsonify({
+        'message': 'An internal server error occurred.',
+        'status': 500
+    }), 500
 
 init_sqlite_db()
 
