@@ -6,6 +6,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
 import ESignDetailsModal from '../components/Common/ESignDetailsModal';
 import { msalConfig, loginRequest, getApiUrl } from '../authConfig';
+import { calculateAssigneeStats } from '../utils/StatsHelper';
 import EmailDraftModal from '../components/Common/EmailDraftModal';
 
 
@@ -71,6 +72,8 @@ const CvitpPage = () => {
   const [eSignDetails, setESignDetails] = useState(null);
   const [emailModalConfig, setEmailModalConfig] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const [sortKey, setSortKey] = useState('receivedDate');
+  const [sortAsc, setSortAsc] = useState(false);
 
   const fetchEsignDetails = async (entry) => {
     try {
@@ -307,6 +310,40 @@ const CvitpPage = () => {
       return matchStr.includes(lowerSearch);
     });
   }, [taxEntries, searchText]);
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortKey(key);
+      setSortAsc(true);
+    }
+  };
+
+  const sortedEntries = useMemo(() => {
+    return [...filteredEntries].sort((a, b) => {
+      let aVal = a[sortKey] || '';
+      let bVal = b[sortKey] || '';
+      
+      if (sortKey === 'receivedDate' || sortKey === 'filledDate') {
+        const dateA = new Date(aVal);
+        const dateB = new Date(bVal);
+        if (!isNaN(dateA) && !isNaN(dateB)) return sortAsc ? dateA - dateB : dateB - dateA;
+      }
+      
+      if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+      if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+      
+      if (aVal < bVal) return sortAsc ? -1 : 1;
+      if (aVal > bVal) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  }, [filteredEntries, sortKey, sortAsc]);
+
+  // --- DYNAMIC ASSIGNEE WORKLOAD STATS ---
+  const assigneeStats = useMemo(() => {
+    return calculateAssigneeStats(taxEntries);
+  }, [taxEntries]);
 
   // Callback mapping logic to handle history interactions seamlessly
   const handleSelectNumberFromHistory = (targetNumber) => {
@@ -688,8 +725,57 @@ const CvitpPage = () => {
 
         {account ? (
           <>
+            {/* --- SUMMARY CARDS --- */}
+            <div className="row g-3 mb-4 mt-2">
+              <div className="col-md-4">
+                <div className="card data-summary-card shadow-sm h-100 p-3 border-0">
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                      <small className="text-muted fw-bold">Non-Completed</small>
+                      <h4 className="mb-0 fw-bold">{taxEntries.filter(item => item.status !== 'Completed').length}</h4>
+                    </div>
+                    <span className="badge bg-warning-subtle text-warning border border-warning">Open</span>
+                  </div>
+                  <p className="mb-0 text-muted small">Records actively being processed.</p>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="card data-summary-card shadow-sm h-100 p-3 border-0">
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                      <small className="text-muted fw-bold">Completed</small>
+                      <h4 className="mb-0 fw-bold">{taxEntries.filter(item => item.status === 'Completed').length} / {taxEntries.length}</h4>
+                    </div>
+                    <span className="badge bg-success-subtle text-success border border-success">Done</span>
+                  </div>
+                  <p className="mb-0 text-muted small">Completed CVITP tax returns.</p>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="card data-summary-card shadow-sm h-100 p-3 border-0 d-flex flex-column">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <small className="text-muted fw-bold">Assignment Overview</small>
+                    <span className="badge bg-info-subtle text-info border border-info">Team Queue</span>
+                  </div>
+                  <div className="d-flex justify-content-between text-muted mb-1" style={{ fontSize: '10px' }}>
+                    <span>REPRESENTATIVE</span>
+                    <span>PENDING / TOTAL</span>
+                  </div>
+                  <div className="flex-grow-1 overflow-auto pe-1" style={{ maxHeight: '75px' }}>
+                    {assigneeStats.map(([assignee, counts]) => (
+                      <div key={assignee} className="d-flex justify-content-between align-items-center small mb-1">
+                        <span className="text-truncate fw-medium me-2" style={{ maxWidth: '160px' }} title={assignee}>{assignee}</span>
+                        <span className="fw-bold">{counts.pending} <span className="text-muted fw-normal">/ {counts.total}</span></span>
+                      </div>
+                    ))}
+                    {assigneeStats.length === 0 && <span className="text-muted small">No assignments yet.</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Top Toolbar Action Elements */}
-            <div className="d-flex flex-wrap justify-content-between align-items-center mt-4 mb-3 gap-3">
+            <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
               <div className="d-flex gap-2">
                 <button className="btn btn-primary d-flex align-items-center gap-2 shadow-sm" onClick={handleOpenAddModal}>
                   ➕ Add Customer
@@ -782,25 +868,33 @@ const CvitpPage = () => {
                   </div>
 
                   {/* Desktop Table View */}
-                  <div className="table-responsive d-none d-md-block" style={{ maxHeight: '620px', minHeight: '320px' }}>
-                    <table className="table align-middle table-hover mb-0">
-                      <thead className="table-light text-uppercase fs-7 text-muted">
-                        <tr>
-                          <th>Taxpayer Name & Contact</th>
-                          <th>Dates (Recv / Filed)</th>
-                          <th>Years of Filing</th>
-                          <th>Status</th>
-                          <th>Assigned To</th>
+                  <div className="table-responsive d-none d-md-block" style={{ minHeight: '350px' }}>
+                    <table className="table table-modern table-hover align-middle shadow-sm">
+                      <colgroup>
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '18%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '15%' }} />
+                      </colgroup>
+                      <thead>
+                        <tr className="text-muted small text-uppercase">
+                          <th onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>Name & Contact {sortKey === 'name' ? (sortAsc ? '▲' : '▼') : '↕'}</th>
+                          <th onClick={() => handleSort('receivedDate')} style={{ cursor: 'pointer' }}>Dates (Recv / Filed) {sortKey === 'receivedDate' ? (sortAsc ? '▲' : '▼') : '↕'}</th>
+                          <th onClick={() => handleSort('yearsOfFiling')} style={{ cursor: 'pointer' }}>Years of Filing {sortKey === 'yearsOfFiling' ? (sortAsc ? '▲' : '▼') : '↕'}</th>
+                          <th onClick={() => handleSort('status')} style={{ cursor: 'pointer' }}>Status {sortKey === 'status' ? (sortAsc ? '▲' : '▼') : '↕'}</th>
+                          <th onClick={() => handleSort('assignedTo')} style={{ cursor: 'pointer' }}>Assigned To {sortKey === 'assignedTo' ? (sortAsc ? '▲' : '▼') : '↕'}</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {taxEntries.length === 0 && !isLoadingEntries ? (
                           <tr><td colSpan="6" className="text-center py-5 text-muted">No operational clinic registrations indexed.</td></tr>
-                        ) : filteredEntries.length === 0 && !isLoadingEntries ? (
+                        ) : sortedEntries.length === 0 && !isLoadingEntries ? (
                           <tr><td colSpan="6" className="text-center py-5 text-muted">No matching records found.</td></tr>
                         ) : (
-                          filteredEntries.map((entry) => (
+                          sortedEntries.map((entry) => (
                             <tr key={entry.id}>
                               
                               <td>

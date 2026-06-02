@@ -4,6 +4,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import DataPageHeader from '../components/Common/DataPageHeader';
 import ESignDetailsModal from '../components/Common/ESignDetailsModal';
 import { msalConfig, loginRequest, getApiUrl, getRawDateString, getUsersEmail, isAdminRole } from '../authConfig';
+import { calculateAssigneeStats } from '../utils/StatsHelper';
 import EmailDraftModal from '../components/Common/EmailDraftModal';
 
 import * as XLSX from 'xlsx';
@@ -161,6 +162,11 @@ const PersonalTaxDataPage = () => {
   const [pageIndex, setPageIndex] = useState(0);
 
   const msalInstance = useMemo(() => new PublicClientApplication(msalConfig), []);
+
+  // --- DYNAMIC ASSIGNEE WORKLOAD STATS ---
+  const assigneeStats = useMemo(() => {
+    return calculateAssigneeStats(customers);
+  }, [customers]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1025,7 +1031,7 @@ const PersonalTaxDataPage = () => {
       {account ? (
         <>
           <div className="row g-3 mb-4">
-            <div className="col-md-6">
+            <div className="col-md-4">
               <div className="card data-summary-card h-100 p-3">
                 <div className="d-flex align-items-center justify-content-between mb-3">
                   <div>
@@ -1037,7 +1043,7 @@ const PersonalTaxDataPage = () => {
                 <p className="mb-0 text-muted">Only non-completed records are displayed in the table.</p>
               </div>
             </div>
-            <div className="col-md-6">
+            <div className="col-md-4">
               <div className="card data-summary-card h-100 p-3">
                 <div className="d-flex align-items-center justify-content-between mb-3">
                   <div>
@@ -1047,6 +1053,27 @@ const PersonalTaxDataPage = () => {
                   <span className="badge bg-success">Done</span>
                 </div>
                 <p className="mb-0 text-muted">Completed records out of total loaded customers.</p>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="card data-summary-card shadow-sm h-100 p-3 border-0 d-flex flex-column">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <small className="text-muted fw-bold">Assignment Overview</small>
+                  <span className="badge bg-info-subtle text-info border border-info">Team Queue</span>
+                </div>
+                <div className="d-flex justify-content-between text-muted mb-1" style={{ fontSize: '10px' }}>
+                  <span>REPRESENTATIVE</span>
+                  <span>PENDING / TOTAL</span>
+                </div>
+                <div className="flex-grow-1 overflow-auto pe-1" style={{ maxHeight: '75px' }}>
+                  {assigneeStats.map(([assignee, counts]) => (
+                    <div key={assignee} className="d-flex justify-content-between align-items-center small mb-1">
+                      <span className="text-truncate fw-medium me-2" style={{ maxWidth: '160px' }} title={assignee}>{assignee}</span>
+                      <span className="fw-bold">{counts.pending} <span className="text-muted fw-normal">/ {counts.total}</span></span>
+                    </div>
+                  ))}
+                  {assigneeStats.length === 0 && <span className="text-muted small">No assignments yet.</span>}
+                </div>
               </div>
             </div>
             <div className="col-12 text-md-end">
