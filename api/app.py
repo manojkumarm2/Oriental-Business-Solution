@@ -1,4 +1,5 @@
 import os
+import re  # <-- FIX A: Added missing regular expression library
 import traceback
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
@@ -6,9 +7,9 @@ from jose import jwt
 import requests
 from functools import wraps
 import sqlite3
-from dotenv import load_dotenv  # 1. Import load_dotenv
+from dotenv import load_dotenv
 
-# 2. Load the environment variables right away
+# Load the environment variables right away
 load_dotenv()
 
 from tax_managers import PersonalTaxManager, CorporateTaxManager, CvitpTaxManager, DocumentSignManager, DB_FILE, get_db_connection
@@ -49,6 +50,41 @@ def validate_token(f):
         except Exception as e:
             return jsonify({'message': 'Token is invalid', 'error': str(e)}), 401
     return decorated
+
+def run_e164_phone_migration(cursor):
+    """
+    FIX C: Wrapped formatting logic inside a structured function 
+    to prevent initialization crashes and scope isolation.
+    """
+    target_tables = ['customers', 'corporate', 'cvitpStatus']
+    fallback_number = "+10000000000"
+
+    for table in target_tables:
+        print(f"🔄 Starting E.164 formatting fallback migration for table: {table}")
+        
+        # Fetch the primary key and the current raw mobile string for every row
+        cursor.execute(f"SELECT id, mobile FROM {table};")
+        records = cursor.fetchall()
+        
+        for record_id, raw_mobile in records:
+            cleaned_number = fallback_number 
+            
+            if raw_mobile:
+                mobile_str = str(raw_mobile).strip()
+                
+                if mobile_str.upper() not in ['NULL', 'N/A', '', 'NONE', 'NAN']:
+                    digits_only = re.sub(r'[^0-9]', '', mobile_str)
+                    
+                    if len(digits_only) == 10:
+                        cleaned_number = f"+1{digits_only}"
+                    elif len(digits_only) == 11 and digits_only.startswith('1'):
+                        cleaned_number = f"+{digits_only}"
+                    elif len(digits_only) >= 10:
+                        cleaned_number = f"+1{digits_only[-10:]}"
+            
+            update_query = f"UPDATE {table} SET mobile = ? WHERE id = ?;"  # Use ? placeholder for SQLite compatibility
+            cursor.execute(update_query, (cleaned_number, record_id))
+    print("✅ All target tables completely migrated to E.164 metrics.")
 
 def init_sqlite_db():
     with sqlite3.connect(DB_FILE) as conn:
@@ -165,6 +201,8 @@ def init_sqlite_db():
         if 'duration' not in columns:
             cursor.execute("ALTER TABLE cvitpCallHistory ADD COLUMN duration INTEGER")
 
+        # FIX B: Indented migration layer inside active transactional context block safely
+        run_e164_phone_migration(cursor)
         conn.commit()
 
 @app.route('/api/health', methods=['GET'])
@@ -258,12 +296,10 @@ def delete_corporate(corporate_id):
     return jsonify({'message': 'Not found'}), 404
 
 # --- CVITP Tax Status Routes ---
-
 @app.route('/api/cvitp', methods=['POST'])
 @app.route('/cvitp', methods=['POST'])
 @validate_token
 def create_cvitp_entry():
-    """Create a new CVITP status entry"""
     try:
         entry_id = CvitpTaxManager.create(request.get_json())
         return jsonify({'id': entry_id, 'status': 'created'}), 201
@@ -276,15 +312,12 @@ def create_cvitp_entry():
 @app.route('/cvitp', methods=['GET'])
 @validate_token
 def get_cvitp_entries():
-    """Retrieve all CVITP status entries"""
     return jsonify(CvitpTaxManager.get_all()), 200
-
 
 @app.route('/api/cvitp/<entry_id>', methods=['PUT'])
 @app.route('/cvitp/<entry_id>', methods=['PUT'])
 @validate_token
 def update_cvitp_entry(entry_id):
-    """Update an existing CVITP status entry by id"""
     try:
         if CvitpTaxManager.update(entry_id, request.get_json()):
             return jsonify({'status': 'updated'}), 200
