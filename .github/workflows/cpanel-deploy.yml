@@ -34,6 +34,6 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./build/
           # 1. Exact path to your project subdirectory
-          server-dir: /public_html/test_orientalbiz.ca/
+          server-dir: /public_html/orientalbiz.ca/
           # 2. CRITICAL: Prevents deleting existing files on cPanel
           dangerous-clean-html: false
