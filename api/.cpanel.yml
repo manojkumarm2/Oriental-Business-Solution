@@ -1,8 +1,5 @@
 ---
 deployment:
   tasks:
-    # 1. Sync ONLY the contents of your api folder into your active running environment
     - /bin/rsync -av --delete api/ /home/hf6lflroa5da/orientalbiz_api/
-    
-    # 2. Force Phusion Passenger to restart your Python application instantly
     - /bin/touch /home/hf6lflroa5da/orientalbiz_api/tmp/restart.txt
