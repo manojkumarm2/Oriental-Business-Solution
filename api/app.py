@@ -91,6 +91,16 @@ def log_request_info():
     if request.method == 'OPTIONS':
         return
     g.start_time = time.time()
+    
+    # Early token peek strictly to extract the user email for incoming request logs
+    token = request.headers.get('Authorization', '').split()
+    if len(token) == 2:
+        try:
+            unverified_claims = jwt.get_unverified_claims(token[1])
+            g.user_email = (unverified_claims.get('preferred_username') or unverified_claims.get('upn') or unverified_claims.get('email') or '').lower()
+        except Exception:
+            pass
+            
     req_body = ""
     try:
         if request.is_json:
