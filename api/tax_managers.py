@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 from datetime import datetime
 import secrets
@@ -14,6 +15,28 @@ def get_db_connection():
     conn.row_factory = dict_factory
     return conn
 
+# A quick standalone utility for incoming data strings
+def sanitize_incoming_phone(raw_mobile):
+    fallback_number = "+10000000000"
+    if not raw_mobile:
+        return fallback_number
+        
+    mobile_str = str(raw_mobile).strip()
+    if mobile_str.upper() in ['NULL', 'N/A', '', 'NONE', 'NAN']:
+        return fallback_number
+
+    # Strip away all formatting (dashes, spaces, parentheses)
+    digits_only = re.sub(r'[^0-9]', '', mobile_str)
+    
+    if len(digits_only) == 10:
+        return f"+1{digits_only}"
+    elif len(digits_only) == 11 and digits_only.startswith('1'):
+        return f"+{digits_only}"
+    elif len(digits_only) >= 10:
+        return f"+1{digits_only[-10:]}"
+        
+    return fallback_number
+
 class PersonalTaxManager:
     @staticmethod
     def get_all():
@@ -28,7 +51,8 @@ class PersonalTaxManager:
         mobile = data.get('mobile')
         if not name or not mobile:
             raise ValueError("Name and mobile number are required.")
-            
+        
+        mobile = sanitize_incoming_phone(mobile)
         customer_data = (
             name, data.get('spouse', ''), mobile, data.get('email', ''),
             data.get('address', ''), data.get('city', ''), data.get('invoiceDate', ''),
@@ -65,6 +89,10 @@ class PersonalTaxManager:
         if not filtered_updates:
             raise ValueError("No valid fields provided for update.")
             
+        # Sanitize the mobile number if it's being updated
+        if 'mobile' in filtered_updates:
+            filtered_updates['mobile'] = sanitize_incoming_phone(filtered_updates['mobile'])
+
         set_parts = [f"{k} = ?" for k in filtered_updates.keys()]
         values = list(filtered_updates.values()) + [int(customer_id)]
         
@@ -122,6 +150,7 @@ class CorporateTaxManager:
         if not business_name or not mobile:
             raise ValueError("Business name and mobile number are required.")
             
+        mobile = sanitize_incoming_phone(mobile)
         corporate_data = (
             business_name, data.get('contactName', ''), data.get('businessNumber', ''),
             data.get('address', ''), data.get('email', ''), data.get('yearEnd', ''),
@@ -163,7 +192,10 @@ class CorporateTaxManager:
         filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
         if not filtered_updates:
             raise ValueError("No valid fields provided for update.")
-            
+        
+        if 'mobile' in filtered_updates:
+            filtered_updates['mobile'] = sanitize_incoming_phone(filtered_updates['mobile'])
+        
         set_parts = [f"{k} = ?" for k in filtered_updates.keys()]
         values = list(filtered_updates.values()) + [int(corporate_id)]
         
@@ -190,6 +222,7 @@ class CvitpTaxManager:
         if not name or not mobile:
             raise ValueError("Name and mobile number are required.")
             
+        mobile = sanitize_incoming_phone(mobile)
         cvitp_data = (
             name,
             mobile,
@@ -228,6 +261,9 @@ class CvitpTaxManager:
         if not filtered_updates:
             raise ValueError("No valid fields provided for update.")
             
+        if 'mobile' in filtered_updates:
+            filtered_updates['mobile'] = sanitize_incoming_phone(filtered_updates['mobile'])
+
         set_parts = [f"{k} = ?" for k in filtered_updates.keys()]
         values = list(filtered_updates.values()) + [int(entry_id)]
         

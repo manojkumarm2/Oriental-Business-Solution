@@ -202,7 +202,7 @@ def init_sqlite_db():
             cursor.execute("ALTER TABLE cvitpCallHistory ADD COLUMN duration INTEGER")
 
         # FIX B: Indented migration layer inside active transactional context block safely
-        run_e164_phone_migration(cursor)
+        # run_e164_phone_migration(cursor)
         conn.commit()
 
 @app.route('/api/health', methods=['GET'])
