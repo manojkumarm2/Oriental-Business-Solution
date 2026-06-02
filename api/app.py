@@ -12,6 +12,7 @@ import requests
 from functools import wraps
 import sqlite3
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
 # Load the environment variables right away
 load_dotenv()
@@ -43,8 +44,31 @@ def setup_logger():
     obs_logger = logging.getLogger('obs_api')
     obs_logger.setLevel(logging.INFO)
     
-    # 🎯 Baked [%(user_email)s] directly into your global formatter token layout
     formatter = logging.Formatter('[%(asctime)s] [%(user_email)s] %(levelname)s in %(module)s: %(message)s')
+    
+    # 🎯 TIME CONVERSION FIX: Explicitly shift UTC to Eastern Time (EST/EDT)
+    def eastern_time_converter(*args):
+        # 1. Grab raw Coordinated Universal Time (UTC)
+        utc_now = datetime.utcnow()
+        
+        # 2. Check if the current date falls within Daylight Saving Time (EDT = UTC-4) 
+        # or Standard Time (EST = UTC-5). 
+        # For 2026, EDT started March 8 and ends November 1.
+        now_year = utc_now.year
+        
+        # Approximate boundary logic for Eastern Daylight Time (EDT)
+        # March (after 2nd Sunday) through November (before 1st Sunday)
+        dst_start = datetime(now_year, 3, 8, 2, 0, 0)
+        dst_end = datetime(now_year, 11, 1, 2, 0, 0)
+        
+        if dst_start <= utc_now < dst_end:
+            localized_time = utc_now - timedelta(hours=4)  # EDT Shift
+        else:
+            localized_time = utc_now - timedelta(hours=5)  # EST Shift
+            
+        return localized_time.timetuple()
+        
+    formatter.converter = eastern_time_converter
     
     # Resolved dynamic absolute path to prevent server permission routing errors
     log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api.log')
@@ -53,7 +77,6 @@ def setup_logger():
     file_handler.setFormatter(formatter)
     
     if not obs_logger.handlers:
-        # Link the contextual filter to the handler before attaching it to the logger
         file_handler.addFilter(ContextualUserFilter())
         obs_logger.addHandler(file_handler)
     
