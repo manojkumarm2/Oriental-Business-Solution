@@ -1,0 +1,39 @@
+name: Deploy React to cPanel Subdirectory
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Production Application
+        run: npm run build
+        env:
+          CI: false 
+
+      - name: Sync Build Folder to cPanel Subdirectory
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./build/
+          # 1. Exact path to your project subdirectory
+          server-dir: /home/hf6lflroa5da/public_html/test_orientalbiz.ca/
+          # 2. CRITICAL: Prevents deleting existing files on cPanel
+          dangerous-clean-html: false
