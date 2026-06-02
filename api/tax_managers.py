@@ -309,7 +309,7 @@ class DocumentSignManager:
             cursor.execute(f"UPDATE {main_table} SET status = 'Draft Sent' WHERE id = ?", (customer_id,))
             conn.commit()
 
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
+        frontend_url = os.getenv('FRONTEND_URL', 'https://orientalbiz.ca').rstrip('/')
         customer_access_link = f"{frontend_url}/review-tax/{secure_portal_token}"
 
         return {
