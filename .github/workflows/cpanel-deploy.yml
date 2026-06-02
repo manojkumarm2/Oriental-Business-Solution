@@ -37,3 +37,6 @@ jobs:
           server-dir: /public_html/orientalbiz.ca/
           # 2. CRITICAL: Prevents deleting existing files on cPanel
           dangerous-clean-html: false
+          protocol: ftps
+          port: 21
+          timeout: 60000 # Extends the wait time to 60 seconds to prevent early timeouts
