@@ -6,6 +6,7 @@
 .pnp.js
 /api/venv
 /api/*.db
+/api/.env
 
 # testing
 /coverage
