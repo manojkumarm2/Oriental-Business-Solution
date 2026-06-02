@@ -251,3 +251,41 @@ textarea.form-control {
   border-radius: 0.85rem;
 }
 
+/* DIALER BUTTON STYLES */
+.dialer-btn {
+  transition: all 0.3s ease;
+}
+
+.dialer-btn-open {
+  width: 45px;
+  height: 45px;
+}
+
+.dialer-btn-closed {
+  width: auto;
+  height: auto;
+}
+
+.dialer-icon-open {
+  font-size: 1.2rem;
+}
+
+.dialer-icon-closed {
+  font-size: inherit;
+}
+
+/* DIALER OFFCANVAS & PAGE COMPRESSION RESPONSIVE BEHAVIOR */
+@media (max-width: 767.98px) {
+  .dialer-offcanvas {
+    width: 100% !important;
+    border-left: none !important;
+  }
+}
+@media (min-width: 768px) {
+  .dialer-offcanvas {
+    width: 400px !important;
+  }
+  .page-with-dialer.dialer-open {
+    padding-right: 415px !important;
+  }
+}

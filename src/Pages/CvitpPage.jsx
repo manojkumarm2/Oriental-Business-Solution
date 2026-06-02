@@ -1,29 +1,32 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PublicClientApplication } from '@azure/msal-browser';
-import DataPageHeader from '../components/Common/DataPageHeader';
 import ESignDetailsModal from '../components/Common/ESignDetailsModal';
-import { msalConfig, loginRequest, getApiUrl } from '../authConfig';
+import { loginRequest, getApiUrl } from '../authConfig';
 import { calculateAssigneeStats } from '../utils/StatsHelper';
-import EmailDraftModal from '../components/Common/EmailDraftModal';
-import CvitpCommunicationsHub from '../components/Cvitp/CvitpCommunicationsHub';
+import { useTaxPortal } from '../utils/useTaxPortal';
+import TaxPortalLayout from '../components/Common/TaxPortalLayout';
+import TaxPortalToolbar from '../components/Common/TaxPortalToolbar';
+
+const statusOptions = ['Pending', 'Draft Sent', 'Processing', 'eSigned', 'Completed', 'Cancelled'];
 
 const CvitpPage = () => {
+  const portalState = useTaxPortal();
+  const { account, msalInstance, isInitialized, error, setError, message, setMessage, setDialNumber, setIsDialerOpen, setRefreshTrigger, setEmailModalConfig } = portalState;
+
   const navigate = useNavigate();
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [account, setAccount] = useState(null);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
 
   // --- CVITP TAX CLINIC DATABASE STATE ---
   const [taxEntries, setTaxEntries] = useState([]);
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [eSignDetails, setESignDetails] = useState(null);
-  const [emailModalConfig, setEmailModalConfig] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [sortKey, setSortKey] = useState('receivedDate');
   const [sortAsc, setSortAsc] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('nonCompleted');
+  const [filterAssignedTo, setFilterAssignedTo] = useState('');
+  const [pageSize, setPageSize] = useState(25);
+  const [pageIndex, setPageIndex] = useState(0);
 
   const fetchEsignDetails = async (entry) => {
     try {
@@ -52,17 +55,11 @@ const CvitpPage = () => {
     name: '', mobile: '', email: '', status: 'Pending', assignedTo: '', coin: '', receivedDate: '', filledDate: '', yearsOfFiling: []
   });
 
-  const msalInstance = useMemo(() => new PublicClientApplication(msalConfig), []);
-
   // Parse valid user emails from env for dropdown selections safely
   const agentEmails = useMemo(() => {
     const rawEnv = process.env.REACT_APP_USER_EMAILS || '';
     return rawEnv.split(',').map(email => email.trim()).filter(Boolean);
   }, []);
-
-  // --- PERSISTENT DB DIALPAD & HISTORY TERMINAL STATE ---
-  const [dialNumber, setDialNumber] = useState("+1");
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // --- DYNAMIC YEARS OF FILING OPTIONS (LAST 10 YEARS) ---
   const last10Years = useMemo(() => {
@@ -155,13 +152,19 @@ const CvitpPage = () => {
   };
 
   const filteredEntries = useMemo(() => {
-    if (!searchText) return taxEntries;
-    const lowerSearch = searchText.toLowerCase();
+    const lowerSearch = searchText ? searchText.toLowerCase() : '';
     return taxEntries.filter(entry => {
+      const statusMatch = filterStatus === 'nonCompleted'
+        ? entry.status !== 'Completed'
+        : filterStatus
+          ? entry.status === filterStatus
+          : true;
+      const assignedMatch = filterAssignedTo ? entry.assignedTo === filterAssignedTo : true;
       const matchStr = `${entry.name || ''} ${entry.mobile || ''} ${entry.email || ''} ${entry.assignedTo || ''} ${entry.status || ''}`.toLowerCase();
-      return matchStr.includes(lowerSearch);
+      const searchMatch = !lowerSearch || matchStr.includes(lowerSearch);
+      return statusMatch && assignedMatch && searchMatch;
     });
-  }, [taxEntries, searchText]);
+  }, [taxEntries, searchText, filterStatus, filterAssignedTo]);
 
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -197,11 +200,18 @@ const CvitpPage = () => {
     return calculateAssigneeStats(taxEntries);
   }, [taxEntries]);
 
+  const totalPages = Math.max(1, Math.ceil(sortedEntries.length / pageSize));
+  const pageData = sortedEntries.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [pageSize, filterStatus, filterAssignedTo, searchText, taxEntries.length]);
+
 
   const exportToCSV = () => {
-    if (taxEntries.length === 0) return;
+    if (sortedEntries.length === 0) return;
     const headers = ["ID", "Name", "Mobile", "Email", "Status", "Assigned To", "Coin Reference", "Received Date", "Filed Date", "Years of Filing", "Created At"];
-    const rows = taxEntries.map(entry => [
+    const rows = sortedEntries.map(entry => [
       entry.id, entry.name, entry.mobile, entry.email || '', entry.status, entry.assignedTo, entry.coin, entry.receivedDate, entry.filledDate, entry.yearsOfFiling || '', entry.createdAt
     ]);
 
@@ -219,54 +229,19 @@ const CvitpPage = () => {
 
   // --- MSAL & LIFECYCLE ---
   useEffect(() => {
-    let isMounted = true;
-    const initializeMsal = async () => {
-      try {
-        if (typeof msalInstance.initialize === 'function') {
-          await msalInstance.initialize();
-        }
-        const response = await msalInstance.handleRedirectPromise();
-        if (isMounted) {
-          if (response && response.account) {
-            setAccount(response.account);
-            fetchCvitpEntries(response.account);
-          } else {
-            const currentAccounts = msalInstance.getAllAccounts();
-            if (currentAccounts.length > 0) {
-              setAccount(currentAccounts[0]);
-              fetchCvitpEntries(currentAccounts[0]);
-            }
-          }
-          setIsInitialized(true);
-        }
-      } catch (err) {
-        console.error('MSAL Initialization Error:', err);
-        if (isMounted) setError('Failed to initialize authentication.');
-      }
-    };
-    initializeMsal();
-    return () => { isMounted = false; };
-  }, [msalInstance]);
-
-  const handleLogin = async () => {
-    try { await msalInstance.loginRedirect(loginRequest); } catch (e) { setError(e.message); }
-  };
-
-  const handleLogout = async () => {
-    try { await msalInstance.logoutRedirect({ account }); } catch (e) { setError(e.message); }
-  };
+    if (account && isInitialized) {
+      fetchCvitpEntries(account);
+    }
+  }, [account, isInitialized]);
 
   return (
-    <div className="container-fluid py-4" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      <div className="container">
-        <DataPageHeader
-          title="CVITP Clinic Desk"
-          description="Manage community tax clinic records and client queues seamlessly."
-          account={account}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-        />
-
+    <TaxPortalLayout
+      title="CVITP Clinic Desk"
+      description="Manage community tax clinic records and client queues seamlessly."
+      taxEntries={taxEntries}
+      portalState={portalState}
+      isFluid={true}
+    >
         {(error || message) && (
           <div className="mt-3">
             {error && <div className="alert alert-danger alert-dismissible fade show">{error}<button type="button" className="btn-close" onClick={() => setError('')}></button></div>}
@@ -325,39 +300,29 @@ const CvitpPage = () => {
               </div>
             </div>
 
-            {/* Top Toolbar Action Elements */}
-            <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
-              <div className="d-flex gap-2">
-                <button className="btn btn-primary d-flex align-items-center gap-2 shadow-sm" onClick={handleOpenAddModal}>
-                  ➕ Add Customer
-                </button>
-                <button className="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-sm" onClick={exportToCSV} disabled={taxEntries.length === 0}>
-                  📥 Export Report
-                </button>
-              </div>
-              <button className="btn btn-sm btn-outline-primary" onClick={() => fetchCvitpEntries()} disabled={isLoadingEntries}>
-                {isLoadingEntries ? '🔄 Refreshing...' : '🔄 Refresh Data'}
-              </button>
-            </div>
-
-            <div className="row mb-3">
-              <div className="col-md-6 col-lg-5">
-                <div className="input-group shadow-sm rounded-pill overflow-hidden">
-                  <span className="input-group-text bg-white border-end-0">🔎</span>
-                  <input
-                    type="text"
-                    className="form-control border-start-0"
-                    placeholder="Search name, mobile, email..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
+            <TaxPortalToolbar
+              searchPlaceholder="Search name, mobile, email..."
+              searchText={searchText}
+              onSearchChange={setSearchText}
+              statusOptions={statusOptions}
+              filterStatus={filterStatus}
+              onFilterStatusChange={setFilterStatus}
+              assignedToOptions={agentEmails}
+              filterAssignedTo={filterAssignedTo}
+              onFilterAssignedToChange={setFilterAssignedTo}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => { setPageSize(size); setPageIndex(0); }}
+              onAdd={handleOpenAddModal}
+              addLabel="➕ Add Customer"
+              onExport={exportToCSV}
+              disableExport={sortedEntries.length === 0}
+              onRefresh={() => fetchCvitpEntries()}
+              isRefreshing={isLoadingEntries}
+            />
 
             <div className="row">
               {/* Left Column: Data Grid Dashboard */}
-              <div className="col-12 col-xl-8 mb-4">
+              <div className="col-12 mb-4">
                 <div className="card border-0 shadow-sm position-relative">
                   {(isLoadingEntries || isSaving) && (
                     <div className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white" style={{ zIndex: 10, opacity: 0.8, borderRadius: 'inherit' }}>
@@ -373,21 +338,21 @@ const CvitpPage = () => {
 
                   {/* Mobile Card View */}
               <div className="d-block d-md-none p-3 bg-light">
-                    {filteredEntries.length === 0 && !isLoadingEntries ? (
+                    {pageData.length === 0 && !isLoadingEntries ? (
                       <div className="card mb-3 mobile-record-card shadow-sm border-0">
                         <div className="card-body text-center py-4">
                           <p className="mb-0 text-muted">No matching records found.</p>
                         </div>
                       </div>
                     ) : (
-                      filteredEntries.map((entry) => (
+                      pageData.map((entry) => (
                     <div key={entry.id} className="card mb-3 mobile-record-card shadow-sm border-0">
                           <div className="card-body p-3">
                             <div className="d-flex justify-content-between align-items-start mb-2">
                               <div>
                                 <h6 className="mb-1 fw-bold text-dark">{entry.name}</h6>
                                 <div className="mt-1">
-                                  <button className="btn btn-link btn-sm p-0 text-decoration-none d-block text-start" onClick={() => setDialNumber(entry.mobile)}>📞 {entry.mobile}</button>
+                                  <button className="btn btn-link btn-sm p-0 text-decoration-none d-block text-start" onClick={() => { setDialNumber(entry.mobile); setIsDialerOpen(true); }}>📞 {entry.mobile}</button>
                                   {entry.email && <div className="text-muted small mt-1" style={{fontSize: '11px'}}>✉️ {entry.email}</div>}
                                 </div>
                               </div>
@@ -442,16 +407,16 @@ const CvitpPage = () => {
                       <tbody>
                         {taxEntries.length === 0 && !isLoadingEntries ? (
                           <tr><td colSpan="6" className="text-center py-5 text-muted">No operational clinic registrations indexed.</td></tr>
-                        ) : sortedEntries.length === 0 && !isLoadingEntries ? (
+                        ) : pageData.length === 0 && !isLoadingEntries ? (
                           <tr><td colSpan="6" className="text-center py-5 text-muted">No matching records found.</td></tr>
                         ) : (
-                          sortedEntries.map((entry) => (
+                          pageData.map((entry) => (
                             <tr key={entry.id}>
                               
                               <td>
                                 <div className="fw-bold text-dark">{entry.name}</div>
                                 <div className="mt-1">
-                                  <button className="btn btn-link btn-sm p-0 text-decoration-none" onClick={() => setDialNumber(entry.mobile)}>
+                                  <button className="btn btn-link btn-sm p-0 text-decoration-none" onClick={() => { setDialNumber(entry.mobile); setIsDialerOpen(true); }}>
                                     📞 {entry.mobile}
                                   </button>
                                   {entry.email && (
@@ -536,21 +501,31 @@ const CvitpPage = () => {
                       </tbody>
                     </table>
                   </div>
+                  
+                  {/* Pagination Controls */}
+                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-3 border-top gap-3">
+                    <div className="text-muted small">
+                      Showing {sortedEntries.length === 0 ? 0 : pageIndex * pageSize + 1} - {Math.min(sortedEntries.length, (pageIndex + 1) * pageSize)} of {sortedEntries.length}
+                    </div>
+                    <div className="btn-group" role="group">
+                      <button
+                        className="btn btn-outline-secondary btn-sm"
+                        disabled={pageIndex === 0}
+                        onClick={() => setPageIndex((prev) => Math.max(prev - 1, 0))}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        className="btn btn-outline-secondary btn-sm"
+                        disabled={pageIndex >= totalPages - 1}
+                        onClick={() => setPageIndex((prev) => Math.min(prev + 1, totalPages - 1))}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {/* Right Column: Tabbed Communications Hub Panel Layout */}
-              <div className="col-12 col-xl-4 position-relative">
-            <CvitpCommunicationsHub 
-              account={account}
-              msalInstance={msalInstance}
-              isInitialized={isInitialized}
-              taxEntries={taxEntries}
-              dialNumber={dialNumber}
-              setDialNumber={setDialNumber}
-              refreshTrigger={refreshTrigger}
-            />
-          </div>
         </div>
 
             {/* --- CUSTOMER ADD/EDIT BACKDROP MODAL --- */}
@@ -650,18 +625,6 @@ const CvitpPage = () => {
             )}
 
             <ESignDetailsModal details={eSignDetails} onClose={() => setESignDetails(null)} />
-            
-            {emailModalConfig && (
-              <EmailDraftModal 
-                customerData={emailModalConfig.customer}
-                action={emailModalConfig.action}
-                taxType={emailModalConfig.taxType}
-                customData={emailModalConfig.customData}
-                msalInstance={msalInstance}
-                account={account}
-                onClose={() => setEmailModalConfig(null)}
-              />
-            )}
           </>
         ) : (
           <div className="alert alert-info mt-4 border-0 p-4 shadow-sm">
@@ -669,8 +632,7 @@ const CvitpPage = () => {
             Please sign in with your corporate credentials to connect your client terminal matrix interface safely.
           </div>
         )}
-      </div>
-    </div>
+    </TaxPortalLayout>
   );
 };
 

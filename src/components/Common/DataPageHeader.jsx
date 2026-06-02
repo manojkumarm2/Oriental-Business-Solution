@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Logo from '../../Assets/nav-logo.png';
+import CvitpCommunicationsHub from '../Cvitp/CvitpCommunicationsHub';
 
-const DataPageHeader = ({ title, description, account, onLogin, onLogout }) => {
+const DataPageHeader = ({ title, description, account, onLogin, onLogout, msalInstance, isInitialized, taxEntries, dialNumber, setDialNumber, refreshTrigger, isDialerOpen, setIsDialerOpen }) => {
   const location = useLocation();
   const navItems = [
     { to: '/customerData', label: 'Personal Tax' },
@@ -32,11 +33,23 @@ const DataPageHeader = ({ title, description, account, onLogin, onLogout }) => {
           )}
         </div>
 
-        <div className="action-block d-flex align-items-start justify-content-end">
+        <div className="action-block d-flex align-items-center justify-content-end gap-3">
           {account ? (
-            <button className="btn btn-outline-secondary btn-sm" onClick={onLogout}>
-              Logout {displayUserName}
-            </button>
+            <>
+              {setIsDialerOpen && (
+                <button 
+                  className={`btn btn-success text-white shadow-sm d-flex align-items-center justify-content-center fw-bold dialer-btn ${isDialerOpen ? 'rounded-circle p-0 dialer-btn-open' : 'rounded-pill px-4 gap-2 dialer-btn-closed'}`} 
+                  onClick={() => setIsDialerOpen(!isDialerOpen)}
+                  title={isDialerOpen ? "Close Dialer" : "Open Dialer"}
+                >
+                  <span className={isDialerOpen ? 'dialer-icon-open' : 'dialer-icon-closed'}>📞</span>
+                  {!isDialerOpen && <span>Open Dialer</span>}
+                </button>
+              )}
+              <button className="btn btn-outline-secondary btn-sm" onClick={onLogout}>
+                Logout {displayUserName}
+              </button>
+            </>
           ) : (
             <button className="btn btn-primary btn-sm" onClick={onLogin}>
               Sign In OrientalBiz
@@ -58,6 +71,21 @@ const DataPageHeader = ({ title, description, account, onLogin, onLogout }) => {
           ))}
         </div>
       </nav>
+
+      {/* Sliding Communications Hub Panel Rendering Logic */}
+      {setIsDialerOpen && account && (
+        <CvitpCommunicationsHub 
+          account={account}
+          msalInstance={msalInstance}
+          isInitialized={isInitialized}
+          taxEntries={taxEntries || []}
+          dialNumber={dialNumber}
+          setDialNumber={setDialNumber}
+          refreshTrigger={refreshTrigger}
+          isDialerOpen={isDialerOpen}
+          setIsDialerOpen={setIsDialerOpen}
+        />
+      )}
     </header>
   );
 };

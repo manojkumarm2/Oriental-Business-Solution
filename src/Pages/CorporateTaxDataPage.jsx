@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { PublicClientApplication } from '@azure/msal-browser';
-import DataPageHeader from '../components/Common/DataPageHeader';
-import { msalConfig, loginRequest, getApiUrl, getRawDateString, getUsersEmail, isAdminRole } from '../authConfig';
-import EmailDraftModal from '../components/Common/EmailDraftModal';
+import { loginRequest, getApiUrl, getRawDateString, getUsersEmail, isAdminRole } from '../authConfig';
+import { useTaxPortal } from '../utils/useTaxPortal';
+import TaxPortalLayout from '../components/Common/TaxPortalLayout';
+import TaxPortalToolbar from '../components/Common/TaxPortalToolbar';
 
 import * as XLSX from 'xlsx';
 
@@ -103,11 +103,10 @@ const compareDueDates = (a, b, key = 'dueDate') => {
 };
 
 const CorporateTaxDataPage = () => {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [account, setAccount] = useState(null);
+  const portalState = useTaxPortal();
+  const { account, msalInstance, isInitialized, error, setError, message, setMessage, setDialNumber, setIsDialerOpen, setRefreshTrigger, setEmailModalConfig } = portalState;
+
   const [records, setRecords] = useState([]);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const [searchText, setSearchText] = useState('');
   const [sortKey, setSortKey] = useState('assignedTo');
   const [sortAsc, setSortAsc] = useState(true);
@@ -123,43 +122,8 @@ const CorporateTaxDataPage = () => {
   const [pageSize, setPageSize] = useState(25);
   const [pageIndex, setPageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('Summary'); // 'Summary', 'HST Filing', 'Payroll'
-  const [emailModalConfig, setEmailModalConfig] = useState(null);
 
-  const msalInstance = useMemo(() => new PublicClientApplication(msalConfig), []);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const initializeMsal = async () => {
-      try {
-        if (typeof msalInstance.initialize === 'function') {
-          await msalInstance.initialize();
-        }
-
-        const response = await msalInstance.handleRedirectPromise();
-        if (!mounted) return;
-
-        if (response && response.account) {
-          setAccount(response.account);
-        } else {
-          const currentAccounts = msalInstance.getAllAccounts();
-          if (currentAccounts.length > 0) {
-            setAccount(currentAccounts[0]);
-          }
-        }
-      } catch (err) {
-        console.error('MSAL Initialization Error:', err);
-        if (mounted) setError('Authentication initialization failed.');
-      } finally {
-        if (mounted) setIsInitialized(true);
-      }
-    };
-
-    initializeMsal();
-    return () => {
-      mounted = false;
-    };
-  }, [msalInstance]);
+  const dialerRecords = useMemo(() => records.map(r => ({ ...r, name: r.businessName })), [records]);
 
   useEffect(() => {
     if (account) {
@@ -189,41 +153,12 @@ const CorporateTaxDataPage = () => {
       }
       const data = await response.json();
       setRecords(data || []);
+      setRefreshTrigger(prev => prev + 1);
     } catch (fetchError) {
       console.error(fetchError);
       setError('Could not verify your session. Please sign in again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleLogin = async () => {
-    if (!isInitialized) {
-      setError('Authentication is still initializing. Please wait.');
-      return;
-    }
-    setError('');
-    setMessage('');
-
-    if (!process.env.REACT_APP_MSAL_CLIENT_ID || process.env.REACT_APP_MSAL_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
-      setError('Please configure REACT_APP_MSAL_CLIENT_ID in your .env file.');
-      return;
-    }
-
-    try {
-      await msalInstance.loginRedirect(loginRequest);
-    } catch (loginError) {
-      console.error(loginError);
-      setError(loginError.message || 'Microsoft sign-in failed.');
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await msalInstance.logoutRedirect({ account });
-    } catch (logoutError) {
-      console.error(logoutError);
-      setError(logoutError.message || 'Logout failed.');
     }
   };
 
@@ -1190,15 +1125,12 @@ const CorporateTaxDataPage = () => {
   };
 
   return (
-    <div className="container py-5 position-relative" style={{ minHeight: '100vh' }}>
-      <DataPageHeader
-        title="Corporate Tax"
-        description="Use your Oriental Biz account to access corporate tax records."
-        account={account}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-      />
-
+    <TaxPortalLayout
+      title="Corporate Tax"
+      description="Use your Oriental Biz account to access corporate tax records."
+      taxEntries={dialerRecords}
+      portalState={portalState}
+    >
       {(error || message) && (
         <div className="mb-3">
           {error && <div className="alert alert-danger">{error}</div>}
@@ -1237,11 +1169,6 @@ const CorporateTaxDataPage = () => {
                 <p className="mb-0 text-muted">Records matched to your signed-in account.</p>
               </div>
             </div>
-            <div className="col-md-4 d-flex align-items-end justify-content-end">
-              <button className="btn btn-primary btn-lg px-4" onClick={handleOpenAddModal}>
-                Add Corporate Record
-              </button>
-            </div>
           </div>
 
           <ul className="nav nav-tabs mb-4">
@@ -1256,72 +1183,28 @@ const CorporateTaxDataPage = () => {
             </li>
           </ul>
 
-          <div className="card data-summary-card mb-4 p-3">
-            <div className="row g-3 align-items-center">
-              <div className="col-md-5">
-                <div className="input-group shadow-sm rounded-pill overflow-hidden">
-                  <span className="input-group-text bg-white border-end-0">🔎</span>
-                  <input
-                    type="text"
-                    className="form-control border-start-0"
-                    placeholder="Search business, contact, status..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="col-md-3">
-                <select className="form-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                  <option value="nonCompleted">Open / Incomplete</option>
-                  <option value="">All statuses</option>
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-3">
-                <div className="input-group shadow-sm rounded-pill overflow-hidden">
-                  <span className="input-group-text bg-white border-end-0">👤</span>
-                  <select
-                    className="form-select border-start-0"
-                    value={filterAssignedTo}
-                    onChange={(e) => setFilterAssignedTo(e.target.value)}
-                  >
-                    <option value="">All assignees</option>
-                    {assignedToOptions.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <select className="form-select" value={filterDueDate} onChange={(e) => setFilterDueDate(e.target.value)}>
-                  <option value="">Upcoming Dues</option>
-                  {dueDateOptions.map((date) => (
-                    <option key={date} value={date}>
-                      {getRawDateString(date)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-2">
-                <select className="form-select" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPageIndex(0); }}>
-                  <option value={25}>25 per page</option>
-                  <option value={100}>100 per page</option>
-                </select>
-              </div>
-              <div className="col-md-2 text-md-end d-flex gap-2 justify-content-end">
-                <button className="btn btn-outline-success" onClick={handleExportToExcel}>
-                  Export
-                </button>
-                <button className="btn btn-outline-primary" onClick={fetchRecords} disabled={loading}>
-                  {loading ? 'Refreshing...' : 'Refresh'}
-                </button>
-              </div>
-            </div>
-          </div>
+          <TaxPortalToolbar
+            searchPlaceholder="Search business, contact, status..."
+            searchText={searchText}
+            onSearchChange={setSearchText}
+            statusOptions={statusOptions}
+            filterStatus={filterStatus}
+            onFilterStatusChange={setFilterStatus}
+            assignedToOptions={assignedToOptions}
+            filterAssignedTo={filterAssignedTo}
+            onFilterAssignedToChange={setFilterAssignedTo}
+            dueDateOptions={dueDateOptions}
+            filterDueDate={filterDueDate}
+            onFilterDueDateChange={setFilterDueDate}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => { setPageSize(size); setPageIndex(0); }}
+            onAdd={handleOpenAddModal}
+            addLabel="➕ Add Corporate"
+            onExport={handleExportToExcel}
+            disableExport={sortedData.length === 0}
+            onRefresh={fetchRecords}
+            isRefreshing={loading}
+          />
 
           <div className="position-relative" style={{ minHeight: '350px' }}>
             {(loading || savingId) && (
@@ -1349,7 +1232,15 @@ const CorporateTaxDataPage = () => {
                       <div className="d-flex justify-content-between align-items-start mb-2">
                         <div>
                           <h5 className="mb-1">{record.businessName}</h5>
-                          {activeTab === 'Summary' && <div className="small text-muted">{record.mobile || 'No mobile'}</div>}
+                          {activeTab === 'Summary' && (
+                            <div className="small text-muted">
+                              {record.mobile ? (
+                                <button className="btn btn-link btn-sm p-0 text-decoration-none text-start" onClick={() => { setDialNumber(record.mobile); setIsDialerOpen(true); }}>
+                                  📞 {record.mobile}
+                                </button>
+                              ) : 'No mobile'}
+                            </div>
+                          )}
                         </div>
                         <div className="dropdown">
                           <button className="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="window">
@@ -1476,7 +1367,13 @@ const CorporateTaxDataPage = () => {
                           <td className="d-none d-md-table-cell">{record.contactName}</td>
 
                           {activeTab === 'Summary' && (
-                            <td className="d-none d-md-table-cell">{record.mobile}</td>
+                            <td className="d-none d-md-table-cell">
+                              {record.mobile ? (
+                                <button className="btn btn-link btn-sm p-0 text-decoration-none" onClick={() => { setDialNumber(record.mobile); setIsDialerOpen(true); }}>
+                                  📞 {record.mobile}
+                                </button>
+                              ) : 'N/A'}
+                            </td>
                           )}
 
                           <td><span className={getStatusBadgeClass(statusField)}>{statusField || 'Unknown'}</span></td>
@@ -1857,18 +1754,7 @@ const CorporateTaxDataPage = () => {
         <div className="alert alert-info">Please sign in with your Oriental Biz account to view the corporate customer portal.</div>
       )}
 
-      {emailModalConfig && (
-        <EmailDraftModal 
-          customerData={emailModalConfig.customer}
-          action={emailModalConfig.action}
-          taxType={emailModalConfig.taxType}
-          customData={emailModalConfig.customData}
-          msalInstance={msalInstance}
-          account={account}
-          onClose={() => setEmailModalConfig(null)}
-        />
-      )}
-    </div>
+    </TaxPortalLayout>
   );
 };
 

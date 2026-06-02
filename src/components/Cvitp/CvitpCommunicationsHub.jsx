@@ -51,7 +51,7 @@ const extractPurePhoneNumber = (incomingCallObj) => {
   return "Internal VoIP Line"; 
 };
 
-const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntries, dialNumber, setDialNumber, refreshTrigger }) => {
+const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntries, dialNumber, setDialNumber, refreshTrigger, isDialerOpen, setIsDialerOpen }) => {
   const [calling, setCalling] = useState(false);
   const [callStatus, setCallStatus] = useState("");
   const [isMuted, setIsMuted] = useState(false);
@@ -404,6 +404,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
 
       setIncomingCall(call);
       setIsRingtoneSilenced(false);
+      setIsDialerOpen(true);
       
       const displayId = extractPurePhoneNumber(call);
       console.log("🚀 Extracted Identity Number for History logging loop:", displayId);
@@ -517,188 +518,205 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
 
   return (
     <>
-      {/* --- 🔔 INLINE DRAWER BOX OVERLAY (DIALER OVERLAY PLACEMENT RESTORED) --- */}
-      {incomingCall && (
-        <div 
-          className="card border-0 shadow-lg position-absolute w-100 top-0 start-0 h-100 bg-white"
-          style={{ zIndex: 1100, borderRadius: '12px' }}
-        >
-          <div className="text-dark text-center py-3 px-2 rounded-top bg-warning fw-bold">
-            <div className="fs-3 mb-1">{isRingtoneSilenced ? '🔕' : '⚡'}</div>
-            <h6 className="fw-black text-uppercase tracking-wider mb-0 small">
-              {isRingtoneSilenced ? "Line Ringing Silently" : "Incoming Communication Line"}
-            </h6>
-          </div>
-          <div className="card-body p-4 d-flex flex-column justify-content-center text-center">
-            <div className="mb-3">
-              <label className="text-uppercase text-muted fs-8 tracking-widest d-block mb-1 fw-bold">Resolved Identity</label>
-              <h3 className="fw-black text-dark mb-1 text-truncate px-1">
-                {resolveCallerIdentity(currentIncomingPhone)}
-              </h3>
-              <span className="badge bg-light text-muted border font-monospace px-2 py-1 fs-8">
-                {currentIncomingPhone || "PSTN Call Line"}
-              </span>
-            </div>
-            
-            <div className="d-flex flex-column gap-2 mt-2 w-100 px-2">
-              <button 
-                className="btn btn-success btn-lg py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2 fs-6" 
-                onClick={handleAcceptCall}
-                style={{ borderRadius: '10px' }}
-              >
-                📞 Connect Call Leg
-              </button>
-              
-              <button 
-                type="button"
-                className={`btn py-2 fw-bold border shadow-sm d-flex align-items-center justify-content-center gap-2 fs-7 ${
-                  isRingtoneSilenced ? 'btn-light text-muted' : 'btn-outline-secondary text-dark'
-                }`}
-                onClick={handleSilenceLocalRingtone}
-                disabled={isRingtoneSilenced}
-                style={{ borderRadius: '10px' }}
-              >
-                {isRingtoneSilenced ? "🔕 Ringtone Muted" : "Mute Sound"}
-              </button>
-
-              <button 
-                className="btn btn-danger btn-sm py-2 fw-medium mt-1 fs-7" 
-                onClick={handleDeclineCall}
-                style={{ borderRadius: '10px' }}
-              >
-                🛑 Decline & Release Line
-              </button>
-            </div>
-          </div>
+      <div 
+        className={`offcanvas offcanvas-end dialer-offcanvas ${isDialerOpen ? 'show' : ''}`} 
+        style={{ 
+          visibility: isDialerOpen ? 'visible' : 'hidden', 
+          zIndex: 1045,
+          boxShadow: isDialerOpen ? '-4px 0 15px rgba(0,0,0,0.08)' : 'none'
+        }} tabIndex="-1">
+        <div className="offcanvas-header bg-white border-bottom shadow-sm z-1">
+          <h5 className="offcanvas-title fw-bold d-flex align-items-center gap-2">
+            <span>📞</span> Communications Hub
+          </h5>
+          <button type="button" className="btn-close" onClick={() => setIsDialerOpen(false)}></button>
         </div>
-      )}
-
-      {/* Sub-tab Navigation Panel wrapper header */}
-      <div className="card border-0 shadow-sm mb-4 bg-white overflow-hidden">
-        <div className="card-header bg-white p-0 border-0">
-          <ul className="nav nav-tabs nav-justified border-bottom-0" style={{ fontSize: '14px' }}>
-            <li className="nav-item">
-              <button 
-                className={`nav-item nav-link rounded-0 py-3 fw-bold border-0 ${activeSubTab === 'dialer' ? 'active bg-white text-primary border-bottom border-primary border-3' : 'text-muted bg-light'}`}
-                onClick={() => setActiveSubTab('dialer')}
-                style={activeSubTab === 'dialer' ? { borderBottom: '3px solid var(--bs-primary)' } : {}}
-              >
-                🎙️ Dialer
-              </button>
-            </li>
-            <li className="nav-item">
-              <button 
-                className={`nav-item nav-link rounded-0 py-3 fw-bold border-0 ${activeSubTab === 'history' ? 'active bg-white text-primary border-bottom border-primary border-3' : 'text-muted bg-light'}`}
-                onClick={() => setActiveSubTab('history')}
-                style={activeSubTab === 'history' ? { borderBottom: '3px solid var(--bs-primary)' } : {}}
-              >
-                📋 Call History
-              </button>
-            </li>
-          </ul>
-        </div>
-
-        <div className="card-body p-4">
-          {/* Render Tab Contents Depending on navigation parameters context */}
-          {activeSubTab === 'dialer' ? (
-            <div className="animate-fade-in">
-              <input
-                type="tel"
-                className="form-control form-control-lg text-center fw-bold mb-3 bg-light border-0"
-                value={dialNumber}
-                onChange={e => setDialNumber(e.target.value)}
-              />
-              <div className="d-flex flex-wrap gap-2 mb-3">
-                {[1,2,3,4,5,6,7,8,9,'*',0,'#'].map((n) => (
-                  <button key={n} className="btn btn-outline-light border text-dark flex-grow-1 py-2 fs-5" style={{ width: '28%', borderRadius: '8px' }} onClick={() => setDialNumber(dialNumber + n)}>{n}</button>
-                ))}
+        
+        <div className="offcanvas-body p-0 bg-light position-relative">
+          {/* --- 🔔 INLINE DRAWER BOX OVERLAY (DIALER OVERLAY PLACEMENT RESTORED) --- */}
+          {incomingCall && (
+            <div 
+              className="card border-0 shadow-lg position-absolute w-100 top-0 start-0 h-100 bg-white"
+              style={{ zIndex: 1100 }}
+            >
+              <div className="text-dark text-center py-3 px-2 bg-warning fw-bold">
+                <div className="fs-3 mb-1">{isRingtoneSilenced ? '🔕' : '⚡'}</div>
+                <h6 className="fw-black text-uppercase tracking-wider mb-0 small">
+                  {isRingtoneSilenced ? "Line Ringing Silently" : "Incoming Communication Line"}
+                </h6>
               </div>
-
-              {calling ? (
-                <div className="d-flex flex-column gap-2">
-                  <div className="d-flex gap-2">
-                    <button type="button" className={`btn w-50 py-2 ${isMuted ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleMute}>{isMuted ? '🎙️ Unmute' : '🎙️ Mute'}</button>
-                    <button type="button" className={`btn w-50 py-2 ${isOnHold ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleHold}>{isOnHold ? '▶️ Resume' : '⏸️ Hold'}</button>
-                  </div>
-                  <button type="button" className="btn btn-danger btn-lg w-100 py-2 mt-2" onClick={handleHangUp}>Disconnect Call</button>
+              <div className="card-body p-4 d-flex flex-column justify-content-center text-center">
+                <div className="mb-3">
+                  <label className="text-uppercase text-muted fs-8 tracking-widest d-block mb-1 fw-bold">Resolved Identity</label>
+                  <h3 className="fw-black text-dark mb-1 text-truncate px-1">
+                    {resolveCallerIdentity(currentIncomingPhone)}
+                  </h3>
+                  <span className="badge bg-light text-muted border font-monospace px-2 py-1 fs-8">
+                    {currentIncomingPhone || "PSTN Call Line"}
+                  </span>
                 </div>
-              ) : (
-                <button type="button" className="btn btn-success btn-lg w-100 py-2 fw-bold" onClick={handleCall} disabled={!dialNumber}>Initiate Call</button>
-              )}
-              
-              <button type="button" className="btn btn-sm btn-link text-muted w-100 mt-2 text-decoration-none" onClick={() => setDialNumber('+1')}>Reset Selector</button>
-
-              {callStatus && (
-                <div className="alert alert-dark mt-3 mb-0 d-flex justify-content-between align-items-center py-2 px-3 border-0 small">
-                  <span>{callStatus}</span>
-                  {calling && callDuration > 0 && <span className="badge bg-danger">{formatDuration(callDuration)}</span>}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="animate-fade-in">
-              <ul className="list-group list-group-flush" style={{ maxHeight: '420px', overflowY: 'auto' }}>
-                {callHistory.length === 0 && <li className="list-group-item text-muted text-center border-0 py-4 small">No current transactions logged.</li>}
                 
-                {['Today', 'Yesterday', 'Older'].map(group => (
-                  groupedHistory[group].length > 0 && (
-                    <React.Fragment key={group}>
-                      <li className="list-group-item bg-light text-muted fw-bold small py-1 border-0">
-                        {group}
-                      </li>
-                      {groupedHistory[group].map((c, i) => (
-                        <li key={`${group}-${i}`} className="list-group-item px-0 d-flex justify-content-between align-items-center border-0 small">
-                          <div>
-                            {c.type === 'outgoing' ? '📤' : '📥'}{' '}
-                            <span className="fw-bold text-dark">{resolveCallerIdentity(c.number)}</span>
-                            {resolveCallerIdentity(c.number) !== c.number && (
-                              <div className="text-muted" style={{ fontSize: '10px', marginLeft: '24px' }}>{c.number}</div>
-                            )}
-                            {/* Subtab Inline dial trigger hyperlink configuration loop map hooks */}
-                            <div className="mt-1" style={{ marginLeft: '24px' }}>
-                              <button 
-                                type="button" 
-                                className="btn btn-sm btn-link p-0 text-decoration-none text-primary fw-medium small"
-                                onClick={() => handleSelectNumberFromHistory(c.number)}
-                                style={{ fontSize: '11px' }}
-                              >
-                                📞 Prepare Return Call
-                              </button>
-                            </div>
-                          </div>
-                          <span className="text-muted text-end" style={{ fontSize: '11px' }}>
-                            <span className={`badge px-1 py-0.5 fs-8 me-1 ${
-                              c.status === 'Connected' || c.status === 'Started' ? 'bg-success-subtle text-success' :
-                              c.status === 'Rejected' || c.status === 'Missed' ? 'bg-danger-subtle text-danger' : 'bg-light text-muted'
-                            }`}>{c.status}</span>
-                            <br/>
-                            <span className="d-block mt-1">
-                              {group === 'Older' ? c.time : (c.time.includes(',') ? c.time.split(',')[1].trim() : (c.time.includes(' ') ? c.time.split(' ').slice(1).join(' ') : c.time))}
-                            </span>
-                            {c.duration !== undefined && c.duration !== null && (
-                              <span className="d-block text-primary fw-medium">⏱ {formatDuration(c.duration)}</span>
-                            )}
-                          </span>
-                        </li>
-                      ))}
-                    </React.Fragment>
-                  )
-                ))}
-              </ul>
-              
-              {callHistory.length > 5 && (
-                <div className="text-center mt-2 border-top pt-2">
+                <div className="d-flex flex-column gap-2 mt-2 w-100 px-2">
+                  <button 
+                    className="btn btn-success btn-lg py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2 fs-6" 
+                    onClick={handleAcceptCall}
+                    style={{ borderRadius: '10px' }}
+                  >
+                    📞 Connect Call Leg
+                  </button>
+                  
                   <button 
                     type="button"
-                    className="btn btn-link btn-sm text-decoration-none fw-bold" 
-                    onClick={() => setShowAllHistory(!showAllHistory)}
+                    className={`btn py-2 fw-bold border shadow-sm d-flex align-items-center justify-content-center gap-2 fs-7 ${
+                      isRingtoneSilenced ? 'btn-light text-muted' : 'btn-outline-secondary text-dark'
+                    }`}
+                    onClick={handleSilenceLocalRingtone}
+                    disabled={isRingtoneSilenced}
+                    style={{ borderRadius: '10px' }}
                   >
-                    {showAllHistory ? "🔼 Show Less" : `🔽 Show More (${callHistory.length - 5} hidden)`}
+                    {isRingtoneSilenced ? "🔕 Ringtone Muted" : "Mute Sound"}
                   </button>
+
+                  <button 
+                    className="btn btn-danger btn-sm py-2 fw-medium mt-1 fs-7" 
+                    onClick={handleDeclineCall}
+                    style={{ borderRadius: '10px' }}
+                  >
+                    🛑 Decline & Release Line
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-tab Navigation Panel wrapper header */}
+          <div className="card border-0 bg-transparent overflow-hidden h-100 d-flex flex-column">
+            <div className="card-header bg-white p-0 border-0 flex-shrink-0">
+              <ul className="nav nav-tabs nav-justified border-bottom-0" style={{ fontSize: '14px' }}>
+                <li className="nav-item">
+                  <button 
+                    className={`nav-item nav-link rounded-0 py-3 fw-bold border-0 ${activeSubTab === 'dialer' ? 'active bg-white text-primary border-bottom border-primary border-3' : 'text-muted bg-light'}`}
+                    onClick={() => setActiveSubTab('dialer')}
+                    style={activeSubTab === 'dialer' ? { borderBottom: '3px solid var(--bs-primary)' } : {}}
+                  >
+                    🎙️ Dialer
+                  </button>
+                </li>
+                <li className="nav-item">
+                  <button 
+                    className={`nav-item nav-link rounded-0 py-3 fw-bold border-0 ${activeSubTab === 'history' ? 'active bg-white text-primary border-bottom border-primary border-3' : 'text-muted bg-light'}`}
+                    onClick={() => setActiveSubTab('history')}
+                    style={activeSubTab === 'history' ? { borderBottom: '3px solid var(--bs-primary)' } : {}}
+                  >
+                    📋 Call History
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <div className="card-body p-4 flex-grow-1 overflow-auto">
+              {/* Render Tab Contents Depending on navigation parameters context */}
+              {activeSubTab === 'dialer' ? (
+                <div className="animate-fade-in">
+                  <input
+                    type="tel"
+                    className="form-control form-control-lg text-center fw-bold mb-3 bg-light border-0"
+                    value={dialNumber}
+                    onChange={e => setDialNumber(e.target.value)}
+                  />
+                  <div className="d-flex flex-wrap gap-2 mb-3">
+                    {[1,2,3,4,5,6,7,8,9,'*',0,'#'].map((n) => (
+                      <button key={n} className="btn btn-outline-light border text-dark flex-grow-1 py-2 fs-5" style={{ width: '28%', borderRadius: '8px' }} onClick={() => setDialNumber(dialNumber + n)}>{n}</button>
+                    ))}
+                  </div>
+
+                  {calling ? (
+                    <div className="d-flex flex-column gap-2">
+                      <div className="d-flex gap-2">
+                        <button type="button" className={`btn w-50 py-2 ${isMuted ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleMute}>{isMuted ? '🎙️ Unmute' : '🎙️ Mute'}</button>
+                        <button type="button" className={`btn w-50 py-2 ${isOnHold ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleHold}>{isOnHold ? '▶️ Resume' : '⏸️ Hold'}</button>
+                      </div>
+                      <button type="button" className="btn btn-danger btn-lg w-100 py-2 mt-2" onClick={handleHangUp}>Disconnect Call</button>
+                    </div>
+                  ) : (
+                    <button type="button" className="btn btn-success btn-lg w-100 py-2 fw-bold" onClick={handleCall} disabled={!dialNumber}>Initiate Call</button>
+                  )}
+                  
+                  <button type="button" className="btn btn-sm btn-link text-muted w-100 mt-2 text-decoration-none" onClick={() => setDialNumber('+1')}>Reset Selector</button>
+
+                  {callStatus && (
+                    <div className="alert alert-dark mt-3 mb-0 d-flex justify-content-between align-items-center py-2 px-3 border-0 small">
+                      <span>{callStatus}</span>
+                      {calling && callDuration > 0 && <span className="badge bg-danger">{formatDuration(callDuration)}</span>}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="animate-fade-in">
+                  <ul className="list-group list-group-flush" style={{ maxHeight: showAllHistory ? 'calc(100vh - 220px)' : '420px', overflowY: 'auto' }}>
+                    {callHistory.length === 0 && <li className="list-group-item text-muted text-center border-0 py-4 small">No current transactions logged.</li>}
+                    
+                    {['Today', 'Yesterday', 'Older'].map(group => (
+                      groupedHistory[group].length > 0 && (
+                        <React.Fragment key={group}>
+                          <li className="list-group-item bg-light text-muted fw-bold small py-1 border-0">
+                            {group}
+                          </li>
+                          {groupedHistory[group].map((c, i) => (
+                            <li key={`${group}-${i}`} className="list-group-item px-0 d-flex justify-content-between align-items-center border-0 small">
+                              <div>
+                                {c.type === 'outgoing' ? '📤' : '📥'}{' '}
+                                <span className="fw-bold text-dark">{resolveCallerIdentity(c.number)}</span>
+                                {resolveCallerIdentity(c.number) !== c.number && (
+                                  <div className="text-muted" style={{ fontSize: '10px', marginLeft: '24px' }}>{c.number}</div>
+                                )}
+                                {/* Subtab Inline dial trigger hyperlink configuration loop map hooks */}
+                                <div className="mt-1" style={{ marginLeft: '24px' }}>
+                                  <button 
+                                    type="button" 
+                                    className="btn btn-sm btn-link p-0 text-decoration-none text-primary fw-medium small"
+                                    onClick={() => handleSelectNumberFromHistory(c.number)}
+                                    style={{ fontSize: '11px' }}
+                                  >
+                                    📞 Prepare Return Call
+                                  </button>
+                                </div>
+                              </div>
+                              <span className="text-muted text-end" style={{ fontSize: '11px' }}>
+                                <span className={`badge px-1 py-0.5 fs-8 me-1 ${
+                                  c.status === 'Connected' || c.status === 'Started' ? 'bg-success-subtle text-success' :
+                                  c.status === 'Rejected' || c.status === 'Missed' ? 'bg-danger-subtle text-danger' : 'bg-light text-muted'
+                                }`}>{c.status}</span>
+                                <br/>
+                                <span className="d-block mt-1">
+                                  {group === 'Older' ? c.time : (c.time.includes(',') ? c.time.split(',')[1].trim() : (c.time.includes(' ') ? c.time.split(' ').slice(1).join(' ') : c.time))}
+                                </span>
+                                {c.duration !== undefined && c.duration !== null && (
+                                  <span className="d-block text-primary fw-medium">⏱ {formatDuration(c.duration)}</span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </React.Fragment>
+                      )
+                    ))}
+                  </ul>
+                  
+                  {callHistory.length > 5 && (
+                    <div className="text-center mt-2 border-top pt-2">
+                      <button 
+                        type="button"
+                        className="btn btn-link btn-sm text-decoration-none fw-bold" 
+                        onClick={() => setShowAllHistory(!showAllHistory)}
+                      >
+                        {showAllHistory ? "🔼 Show Less" : `🔽 Show More (${callHistory.length - 5} hidden)`}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </>
