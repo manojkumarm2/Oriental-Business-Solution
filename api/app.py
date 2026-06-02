@@ -100,6 +100,7 @@ def init_sqlite_db():
                 type TEXT NOT NULL,
                 time TEXT NOT NULL,
                 status TEXT,
+                duration INTEGER,
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )''')
         cursor.execute('''
@@ -158,6 +159,12 @@ def init_sqlite_db():
         if 'yearsOfFiling' not in columns:
             cursor.execute("ALTER TABLE cvitpStatus ADD COLUMN yearsOfFiling TEXT DEFAULT ''")
                 
+        # Migrate cvitpCallHistory to include duration
+        cursor.execute("PRAGMA table_info(cvitpCallHistory)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'duration' not in columns:
+            cursor.execute("ALTER TABLE cvitpCallHistory ADD COLUMN duration INTEGER")
+
         conn.commit()
 
 @app.route('/api/health', methods=['GET'])

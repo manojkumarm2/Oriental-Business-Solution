@@ -284,6 +284,7 @@ class CvitpCallHistoryManager:
         call_type = data.get('type')  
         status = data.get('status')
         time_logged = data.get('time', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        duration = data.get('duration')
 
         if not number or not call_type:
             raise ValueError("Missing critical communication logging parameters.")
@@ -291,9 +292,9 @@ class CvitpCallHistoryManager:
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO cvitpCallHistory (number, type, time, status)
-                VALUES (?, ?, ?, ?)
-            """, (number, call_type, time_logged, status))
+                INSERT INTO cvitpCallHistory (number, type, time, status, duration)
+                VALUES (?, ?, ?, ?, ?)
+            """, (number, call_type, time_logged, status, duration))
             
             seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute("DELETE FROM cvitpCallHistory WHERE CreatedAt < ?", (seven_days_ago,))
