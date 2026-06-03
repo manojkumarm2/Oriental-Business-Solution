@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./build/
-          server-dir: public_html/test_orientalbiz.ca/
+          server-dir: public_html/orientalbiz.ca/
           dangerous-clean-slate: false
           protocol: ftps
           port: 21
