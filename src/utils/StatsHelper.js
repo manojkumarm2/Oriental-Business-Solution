@@ -9,7 +9,7 @@ export const calculateAssigneeStats = (entries) => {
         stats[assignee] = { total: 0, pending: 0 };
       }
       stats[assignee].total += 1;
-      if (entry.status !== 'Completed') {
+      if (entry.status !== 'Completed' && entry.status !== 'Cancelled') {
         stats[assignee].pending += 1;
       }
     });
