@@ -155,7 +155,7 @@ const CvitpPage = () => {
     const lowerSearch = searchText ? searchText.toLowerCase() : '';
     return taxEntries.filter(entry => {
       const statusMatch = filterStatus === 'nonCompleted'
-        ? entry.status !== 'Completed'
+        ? entry.status !== 'Completed' && entry.status !== 'Cancelled'
         : filterStatus
           ? entry.status === filterStatus
           : true;
@@ -259,7 +259,7 @@ const CvitpPage = () => {
                   <div className="d-flex align-items-center justify-content-between mb-3">
                     <div>
                       <small className="text-muted fw-bold">Non-Completed</small>
-                      <h4 className="mb-0 fw-bold">{taxEntries.filter(item => item.status !== 'Completed').length}</h4>
+                      <h4 className="mb-0 fw-bold">{taxEntries.filter(item => item.status !== 'Completed' && item.status !== 'Cancelled').length}</h4>
                     </div>
                     <span className="badge bg-warning-subtle text-warning border border-warning">Open</span>
                   </div>
