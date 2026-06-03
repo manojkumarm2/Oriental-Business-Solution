@@ -4,8 +4,6 @@ import { useTaxPortal } from '../utils/useTaxPortal';
 import TaxPortalLayout from '../components/Common/TaxPortalLayout';
 import TaxPortalToolbar from '../components/Common/TaxPortalToolbar';
 
-import * as XLSX from 'xlsx';
-
 const assignedToOptions = getUsersEmail();
 
 const statusOptions = ['Open', 'Pending', 'Review', 'Draft Sent', 'eSigned', 'Payment Pending', 'Completed'];
@@ -1085,7 +1083,8 @@ const CorporateTaxDataPage = () => {
     setPageIndex(0);
   }, [pageSize, filterAssignedTo, searchText, activeTab, records.length]);
 
-  const handleExportToExcel = () => {
+  const handleExportToExcel = async () => {
+    const XLSX = await import('xlsx');
     const exportData = sortedData.map((record) => ({
       'Business Name': record.businessName || '',
       'Contact Name': record.contactName || '',

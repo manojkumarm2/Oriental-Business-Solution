@@ -7,8 +7,6 @@ import { useTaxPortal } from '../utils/useTaxPortal';
 import TaxPortalLayout from '../components/Common/TaxPortalLayout';
 import TaxPortalToolbar from '../components/Common/TaxPortalToolbar';
 
-import * as XLSX from 'xlsx';
-
 const assignedToOptions = getUsersEmail();
 
 const initialNewCustomer = {
@@ -914,7 +912,8 @@ const PersonalTaxDataPage = () => {
     setPageIndex(0);
   }, [pageSize, filterStatus, searchText, customers.length]);
 
-  const handleExportToExcel = () => {
+  const handleExportToExcel = async () => {
+    const XLSX = await import('xlsx');
     const exportData = sortedData.map((record) => ({
       'Name': record.name || '',
       'Spouse': record.spouse || '',

@@ -1,6 +1,4 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { AzureCommunicationTokenCredential } from '@azure/communication-common';
-import { CallClient } from '@azure/communication-calling';
 import { loginRequest, getApiUrl } from '../../authConfig';
 
 // --- CVITP NETWORK CARRIER TELEMETRY EXTRACTION UTILITY ---
@@ -489,13 +487,17 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
         const data = await response.json();
         if (disposed) return;
 
-        if (!window.__acsCallClient) window.__acsCallClient = new CallClient();
+        if (!window.__acsCallClient) {
+          const { CallClient } = await import('@azure/communication-calling');
+          window.__acsCallClient = new CallClient();
+        }
         if (!window.__acsAgentPromise) {
           window.__acsAgentPromise = (async () => {
             try {
               const deviceManager = await window.__acsCallClient.getDeviceManager();
               await deviceManager.askDevicePermission({ audio: true });
             } catch (e) { console.warn(e); }
+            const { AzureCommunicationTokenCredential } = await import('@azure/communication-common');
             return await window.__acsCallClient.createCallAgent(new AzureCommunicationTokenCredential(data.token), {
               displayName: account?.name || "Oriental Biz User"
             });
