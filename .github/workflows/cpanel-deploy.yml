@@ -17,7 +17,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
       - name: Install Dependencies
         run: npm install
@@ -67,7 +66,6 @@ jobs:
           mkdir -p tmp
           # 🎯 FIX: Injecting the unique GitHub run ID forces the file content to change every deployment
           echo "${{ github.run_id }}-${{ github.run_number }}" > tmp/restart.txt
-
       - name: Force Python App Restart via FTP File Touch
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
