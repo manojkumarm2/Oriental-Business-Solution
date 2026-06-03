@@ -4,6 +4,10 @@ import sqlite3
 from datetime import datetime
 import secrets
 
+import logging
+import requests
+
+logger = logging.getLogger('obs_api')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, 'obs_db.db')
 
@@ -390,7 +394,7 @@ class DocumentSignManager:
             cursor = conn.cursor()
             
             for table, main_table in [("personal_tax", "customers"), ("cvitp_tax", "cvitpStatus")]:
-                cursor.execute(f"SELECT id, customer_id FROM {table} WHERE portal_token = ?", (token,))
+                cursor.execute(f"SELECT id, customer_id, tax_year, file_name, portal_token FROM {table} WHERE portal_token = ?", (token,))
                 record = cursor.fetchone()
                 if record:
                     update_query = f"""
@@ -408,7 +412,144 @@ class DocumentSignManager:
                     """
                     cursor.execute(update_query, (client_location, consent_timestamp, public_ip, resolved_location, device_platform, browser_engine, typed_name, token))
                     cursor.execute(f"UPDATE {main_table} SET status = 'eSigned' WHERE id = ?", (record['customer_id'],))
+                    
+                    cursor.execute(f"SELECT name, email FROM {main_table} WHERE id = ?", (record['customer_id'],))
+                    customer_record = cursor.fetchone()
+                    
                     conn.commit()
+                    
+                    if customer_record:
+                        DocumentSignManager.send_confirmation_email(
+                            customer_name=customer_record['name'],
+                            tax_type="Personal" if table == "personal_tax" else "CVITP",
+                            tax_year=record['tax_year'],
+                            client_email=customer_record.get('email'),
+                            signature_data=data,
+                            file_name=record.get('file_name'),
+                            portal_token=record.get('portal_token')
+                        )
+                        
                     return {"status": "Success", "message": "Document successfully signed."}
             
             raise ValueError("Invalid or expired portal link.")
+        
+    @staticmethod
+    def send_confirmation_email(customer_name, tax_type, tax_year, client_email=None, signature_data=None, file_name='N/A', portal_token='N/A'):
+        logger.info(f"📧 Preparing to send e-sign confirmation email for {customer_name} - {tax_year} {tax_type} Tax.")
+
+        sender_email = "info@orientalbiz.ca"
+        # The Graph API URL requires an active user mailbox to dispatch from.
+        if tax_type.lower() == 'cvitp':
+            sender_email = "cvitp@orientalbiz.ca"
+            
+        tenant_id = os.getenv('AZURE_TENANT_ID', "c4ea64ee-34b6-4a18-9339-8aff143c12d4")
+        client_id = os.getenv('AZURE_CLIENT_ID', "ec39786f-9998-4a43-aef9-2d8148338b0b")
+        client_secret = os.getenv('AZURE_CLIENT_SECRET')
+
+        if not client_secret:
+            logger.error("📧 Email skipped: AZURE_CLIENT_SECRET missing from environment configurations.")
+            return False
+
+        to_recipients = [{"emailAddress": {"address": "cvitp-team@orientalbiz.ca"}}]
+        log_recipients = ["cvitp-team@orientalbiz.ca"]
+        if client_email:
+            clean_email = client_email.lower().strip()
+            to_recipients.append({"emailAddress": {"address": clean_email}})
+            log_recipients.append(clean_email)
+
+        signature_data = signature_data or {}
+        typed_name = signature_data.get('typed_name', 'N/A')
+        client_location = signature_data.get('location', 'N/A')
+        consent_timestamp = signature_data.get('consent_timestamp', 'N/A')
+        public_ip = signature_data.get('public_ip', 'N/A')
+        resolved_location = signature_data.get('resolved_location', 'N/A')
+        device_platform = signature_data.get('device_platform', 'N/A')
+        browser_engine = signature_data.get('browser_engine', 'N/A')
+        agreed_to_file = signature_data.get('agreed_to_file', True)
+        agreed_text = 'Agreed to File' if agreed_to_file else 'Did Not Agree'
+        consent_date = consent_timestamp.split(',')[0] if ',' in consent_timestamp else (consent_timestamp.split(' ')[0] if ' ' in consent_timestamp else 'N/A')
+        consent_time = consent_timestamp.split(',')[1].strip() if ',' in consent_timestamp else (consent_timestamp.split(' ', 1)[1] if ' ' in consent_timestamp else 'N/A')
+
+        try:
+            # 1. Acquire Token via Client Credentials (App-only context)
+            token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
+            token_data = {
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'scope': 'https://graph.microsoft.com/.default',
+                'grant_type': 'client_credentials'
+            }
+            token_r = requests.post(token_url, data=token_data)
+            token_r.raise_for_status()
+            access_token = token_r.json().get('access_token')
+
+            body = f"""====================================================================
+ELECTRONIC CONSENT AUDIT LOG - ORIENTAL BUSINESS SOLUTIONS INC.
+====================================================================
+Document Type:       Form T183 (Information Return for Electronic Filing)
+Tax Module Track:    Tax Workflow
+Target Tax Year:     {tax_year or 'N/A'}
+OneDrive File Ref:   {file_name or 'N/A'}
+
+Client Name:         {customer_name}
+Client Email:        {client_email or 'N/A'}
+Secure Portal Token: {portal_token or 'N/A'}
+
+Execution Metadata:
+------------------
+CRA EFILE Date:      {consent_date}
+CRA EFILE Time:      {consent_time}
+Public IP Address:   {public_ip}
+Resolved Location:   {resolved_location or client_location or 'N/A'}
+Device Platform:     {device_platform}
+Browser Engine:      {browser_engine}
+
+Legal Declaration (Form T183 Part F Compliance):
+-----------------------------------------------
+By checking the authorization box and clicking "Confirm", the user 
+explicitly declares that the information given in their electronic return 
+is correct and complete, and that they select EFILE transmission.
+
+[Electronic Confirmation - SECURELY LOGGED]
+Authorized By:       {typed_name or customer_name}
+Consent Status:      VERIFIED / {agreed_text}
+===================================================================="""
+
+            # 2. Transmit payload to Microsoft Graph
+            email_payload = {
+                "message": {
+                    "subject": f"✍️ E-Sign Completed: {customer_name} - {tax_year} ({tax_type} Tax)",
+                    "body": {
+                        "contentType": "Text",
+                        "content": body
+                    },
+                    "toRecipients": to_recipients
+                },
+                "saveToSentItems": "true"
+            }
+            
+            # Mimic the frontend sendEmail.js pattern to set the From address
+            if tax_type.lower() == 'cvitp':
+                email_payload["message"]["from"] = {
+                    "emailAddress": {
+                        "address": "cvitp-team@orientalbiz.ca"
+                    }
+                }
+
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+
+            logger.info(f"⏳ Sending email via Microsoft Graph API for {sender_email}...")
+            send_mail_url = f"https://graph.microsoft.com/v1.0/users/{sender_email}/sendMail"
+            send_r = requests.post(send_mail_url, headers=headers, json=email_payload)
+            send_r.raise_for_status()
+
+            logger.info(f"✅ E-Sign notification email dispatched to: {', '.join(log_recipients)}")
+            return True
+
+        except Exception as email_err:
+            error_details = send_r.text if 'send_r' in locals() else str(email_err)
+            logger.exception(f"💥 Failed to dispatch e-sign confirmation email via Graph API: {error_details}")
+            return False
