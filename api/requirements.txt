@@ -10,3 +10,5 @@ azure-communication-identity>=1.4.0
 azure-communication-callautomation>=1.1.0
 pytz==2026.1
 urllib3==1.26.18
+pypdf
+reportlab
