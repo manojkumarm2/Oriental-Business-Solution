@@ -607,6 +607,7 @@ def get_faxes():
         return jsonify({'message': 'Server error reading faxes.'}), 500
 
 @app.route('/api/send-fax', methods=['POST'])
+@app.route('/send-fax', methods=['POST'])
 @validate_token
 def send_fax_route():
     try:
@@ -665,6 +666,7 @@ def send_fax_route():
         return jsonify({'detail': 'Failed to process fax request.'}), 500
 
 @app.route('/api/fax/generate-token', methods=['POST'])
+@app.route('/fax/generate-token', methods=['POST'])
 @validate_token
 def generate_fax_token():
     try:
@@ -680,6 +682,7 @@ def generate_fax_token():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/public/fax/validate/<token>', methods=['GET'])
+@app.route('/public/fax/validate/<token>', methods=['GET'])
 def validate_fax_token(token):
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
@@ -692,6 +695,7 @@ def validate_fax_token(token):
         return jsonify({'status': row[0], 'email': row[1]}), 200
 
 @app.route('/api/public/send-fax/<token>', methods=['POST'])
+@app.route('/public/send-fax/<token>', methods=['POST'])
 def public_send_fax(token):
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
