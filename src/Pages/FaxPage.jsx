@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { loginRequest, getApiUrl } from '../authConfig';
 import { useTaxPortal } from '../utils/useTaxPortal';
 import TaxPortalLayout from '../components/Common/TaxPortalLayout';
+import { Link } from 'react-router-dom';
 
 const FAX_DESTINATION_GROUPS = [
   {
@@ -47,10 +48,11 @@ const FaxPage = () => {
   
   const [selectedTarget, setSelectedTarget] = useState('manual');
   const [toNumber, setToNumber] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [subject, setSubject] = useState('');
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleTargetChange = (e) => {
     const val = e.target.value;
@@ -71,16 +73,40 @@ const FaxPage = () => {
   };
 
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+    if (e.target.files) {
+      setSelectedFiles((prev) => [...prev, ...Array.from(e.target.files)]);
     }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files) {
+      const pdfFiles = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+      setSelectedFiles((prev) => [...prev, ...pdfFiles]);
+    }
+  };
+
+  const removeFile = (indexToRemove) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== indexToRemove));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSendFax = async (e) => {
     e.preventDefault();
     const finalNumber = selectedTarget === 'manual' ? toNumber : selectedTarget;
 
-    if (!finalNumber || !selectedFile || !senderName) {
+    if (!finalNumber || selectedFiles.length === 0 || !senderName) {
       setError("Please fill out your name, the destination fax number, and attach a file before sending.");
       return;
     }
@@ -91,7 +117,7 @@ const FaxPage = () => {
 
     const formData = new FormData();
     formData.append('to_number', finalNumber);
-    formData.append('file', selectedFile);
+    selectedFiles.forEach((file) => formData.append('file', file));
     formData.append('sender_name', senderName);
     formData.append('sender_email', senderEmail);
     formData.append('department', department);
@@ -120,7 +146,7 @@ const FaxPage = () => {
         
         setToNumber('');
         setSelectedTarget('manual');
-        setSelectedFile(null);
+        setSelectedFiles([]);
         setDepartment('');
         setSubject('');
         setMessageText('');
@@ -142,11 +168,34 @@ const FaxPage = () => {
       description="Send tax documents and support files directly to the Canada Revenue Agency."
       portalState={portalState}
     >
-      {/* Alert Status Banner */}
+      <div className="mb-3">
+        <Link to="/fax-dashboard" className="text-decoration-none fw-bold text-primary">← Back to Fax Dashboard</Link>
+      </div>
+
+      {/* Alert Status Overlay Modal */}
       {(error || message) && (
-        <div className="mb-4">
-          {error && <div className="alert alert-danger border-start border-danger border-4 shadow-sm">{error}</div>}
-          {message && <div className="alert alert-success border-start border-success border-4 shadow-sm">{message}</div>}
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg">
+              <div className={`modal-header text-white ${error ? 'bg-danger' : 'bg-success'}`}>
+                <h5 className="modal-title fw-bold">
+                  {error ? 'Transmission Failed' : 'Success'}
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => { setError(''); setMessage(''); }}></button>
+              </div>
+              <div className="modal-body p-4 text-center">
+                <div className="fs-1 mb-3">
+                  {error ? '❌' : '✅'}
+                </div>
+                <p className="fs-6 mb-0 text-dark">{error || message}</p>
+              </div>
+              <div className="modal-footer bg-light border-0 justify-content-center">
+                <button type="button" className={`btn px-4 fw-bold ${error ? 'btn-danger' : 'btn-success'}`} onClick={() => { setError(''); setMessage(''); }}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -249,9 +298,32 @@ const FaxPage = () => {
                   </div>
 
                   <div className="mb-4">
-                    <label className="form-label fw-semibold text-dark small">Attach Document (Must be a PDF file)</label>
-                    <input ref={fileInputRef} id="faxFileInput" type="file" className="form-control" accept=".pdf" onChange={handleFileChange} required />
-                    <div className="form-text text-muted small mt-1">If your files are stored in OneDrive, you can browse directly to your OneDrive folder on your computer to select your file.</div>
+                    <label className="form-label fw-semibold text-dark small">Attach Documents (Must be PDF files)</label>
+                    <div 
+                      className={`p-4 text-center border rounded ${isDragging ? 'bg-primary-subtle border-primary' : 'bg-light'}`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      style={{ borderStyle: 'dashed', borderWidth: '2px', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input ref={fileInputRef} id="faxFileInput" type="file" className="d-none" accept=".pdf" multiple onChange={handleFileChange} />
+                      <div className="fs-1 mb-2">📄</div>
+                      <p className="mb-1 fw-bold text-dark">Drag and drop PDF files here</p>
+                      <p className="text-muted small mb-0">or click to browse from your computer</p>
+                    </div>
+
+                    {selectedFiles.length > 0 && (
+                      <ul className="list-group mt-3 shadow-sm">
+                        {selectedFiles.map((file, i) => (
+                          <li key={i} className="list-group-item d-flex justify-content-between align-items-center bg-white border-light">
+                            <span className="small text-truncate fw-medium" style={{ maxWidth: '85%' }}>{file.name}</span>
+                            <button type="button" className="btn btn-sm btn-outline-danger py-0 px-2 fw-bold" onClick={(e) => { e.stopPropagation(); removeFile(i); }}>&times;</button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="form-text text-muted small mt-2">If your files are stored in OneDrive, you can browse directly to your OneDrive folder on your computer to select your file.</div>
                   </div>
 
                   {/* SUBMIT */}

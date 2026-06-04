@@ -15,6 +15,7 @@ import CorporateTaxDataPage from '../Pages/CorporateTaxDataPage';
 import ESignRequestPage from '../Pages/ESignRequestPage';
 import CustomerTaxPortalPage from '../Pages/CustomerTaxPortalPage';
 import FaxPage from '../Pages/FaxPage';
+import FaxDashboard from '../components/Fax/FaxDashboard';
 import ScrollToTop from '../components/Common/ScrollToTop';
 
 const Router = () => {
@@ -34,7 +35,9 @@ const Router = () => {
                     <Route path='/corporateData' element={<CorporateTaxDataPage />} />
                     <Route path='/esign-request' element={<ESignRequestPage />} />
                     <Route path='/review-tax/:token' element={<CustomerTaxPortalPage />} />
-                    <Route path='/fax' element={<FaxPage />} />
+                    <Route path='/send-fax/:token' element={<FaxPage />} />
+                    <Route path='/send-fax' element={<FaxPage />} />
+                    <Route path='/fax-dashboard' element={<FaxDashboard />} />
                     <Route path='/blog' element={<BlogPage />} />
                     <Route path='/faq' element={<FaqPage />} />
                     <Route path='/blogdetails/:id' element={<BlogDetails />} />

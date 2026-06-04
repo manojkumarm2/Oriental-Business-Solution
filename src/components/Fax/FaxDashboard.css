@@ -1,0 +1,64 @@
+.fax-dashboard-container {
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.refresh-btn {
+  padding: 8px 16px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.refresh-btn:hover {
+  background-color: #1565c0;
+}
+
+.fax-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.fax-table th, .fax-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.fax-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.dir-inbound { background-color: #e3f2fd; color: #1976d2; }
+.dir-outbound { background-color: #f3e5f5; color: #4a148c; }
+
+.status-delivered, .status-received { background-color: #e8f5e9; color: #2e7d32; }
+.status-queued, .status-pending { background-color: #fff3e0; color: #f57c00; }
+.status-failed { background-color: #ffebee; color: #c62828; }
+
+.view-link {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+.text-gray { color: #666; }
+.text-sm { font-size: 0.85em; }

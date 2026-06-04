@@ -27,7 +27,7 @@ class FaxManager:
     @classmethod
     def create_cover_page_and_merge(
         cls, 
-        file_content: bytes, 
+        file_contents: list, 
         to_number: str, 
         sender_name: str, 
         sender_email: str,
@@ -40,8 +40,8 @@ class FaxManager:
         sender_phone: str = "+16478556177",
     ) -> bytes:
         
-        original_pdf = PdfReader(BytesIO(file_content))
-        total_pages = len(original_pdf.pages) + 1  # original + 1 cover page
+        original_pdfs = [PdfReader(BytesIO(fc)) for fc in file_contents]
+        total_pages = 1 + sum(len(pdf.pages) for pdf in original_pdfs)
 
         packet = BytesIO()
         c = canvas.Canvas(packet, pagesize=letter)
@@ -227,8 +227,9 @@ class FaxManager:
         writer = PdfWriter()
         writer.add_page(cover_pdf.pages[0])
         
-        for page in original_pdf.pages:
-            writer.add_page(page)
+        for pdf in original_pdfs:
+            for page in pdf.pages:
+                writer.add_page(page)
             
         output = BytesIO()
         writer.write(output)

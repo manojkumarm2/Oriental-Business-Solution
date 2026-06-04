@@ -69,6 +69,14 @@ const DataPageHeader = ({ title, description, account, onLogin, onLogout, msalIn
               {item.label}
             </Link>
           ))}
+          <div className="nav-item dropdown">
+            <button className="nav-link text-sm px-5 py-3 dropdown-toggle text-body-secondary bg-transparent border-0" data-bs-toggle="dropdown" aria-expanded="false">
+              Additional Actions
+            </button>
+            <ul className="dropdown-menu shadow-sm">
+              <li><Link className="dropdown-item py-2 fw-medium" to="/fax-dashboard">📠 Fax Dashboard</Link></li>
+            </ul>
+          </div>
         </div>
       </nav>
 

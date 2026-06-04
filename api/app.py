@@ -611,9 +611,9 @@ def get_faxes():
 def send_fax_route():
     try:
         to_number = request.form.get('to_number')
-        file = request.files.get('file')
+        files = request.files.getlist('file')
         
-        if not to_number or not file:
+        if not to_number or not files:
             return jsonify({'detail': 'Missing recipient number or document.'}), 400
             
         file_id = str(uuid.uuid4())
@@ -624,11 +624,12 @@ def send_fax_route():
         department = request.form.get('department', '')
         subject = request.form.get('subject', '')
         message = request.form.get('message', '')
+        from_number = '4374655477'
 
-        raw_bytes = file.read()
+        raw_bytes_list = [f.read() for f in files]
         try:
             final_pdf_bytes = FaxManager.create_cover_page_and_merge(
-                raw_bytes,
+                raw_bytes_list,
                 to_number=to_number,
                 sender_name=sender_name,
                 sender_email=sender_email,
@@ -638,8 +639,8 @@ def send_fax_route():
             )
         except Exception as e:
             logger.error(f"Cover page generation failed: {e}\n{traceback.format_exc()}")
-            # Gracefully fallback to sending the original unmerged document
-            final_pdf_bytes = raw_bytes
+            # Gracefully fallback to sending the first unmerged document
+            final_pdf_bytes = raw_bytes_list[0]
 
         # Let OneDrive handle hosting the file
         target_drive = sender_email if sender_email in ADMIN_EMAILS else "admin@orientalbiz.ca"
@@ -650,9 +651,9 @@ def send_fax_route():
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    INSERT INTO fax_logs (fax_id, sender_email, sender_name, to_number, direction, media_url)
-                    VALUES (?, ?, ?, ?, 'outbound', ?)
-                """, (fax_id, sender_email, sender_name, to_number, media_url))
+                    INSERT INTO fax_logs (fax_id, sender_email, sender_name, from_number, to_number, direction, media_url)
+                    VALUES (?, ?, ?, ?, ?, 'outbound', ?)
+                """, (fax_id, sender_email, sender_name, from_number, to_number, media_url))
                 conn.commit()
         
         return jsonify(result), 200
@@ -701,9 +702,9 @@ def public_send_fax(token):
             
     try:
         to_number = request.form.get('to_number')
-        file = request.files.get('file')
+        files = request.files.getlist('file')
         
-        if not to_number or not file:
+        if not to_number or not files:
             return jsonify({'detail': 'Missing recipient number or document.'}), 400
             
         file_id = str(uuid.uuid4())
@@ -715,10 +716,10 @@ def public_send_fax(token):
         subject = request.form.get('subject', '')
         message = request.form.get('message', '')
 
-        raw_bytes = file.read()
+        raw_bytes_list = [f.read() for f in files]
         try:
             final_pdf_bytes = FaxManager.create_cover_page_and_merge(
-                raw_bytes,
+                raw_bytes_list,
                 to_number=to_number,
                 sender_name=sender_name,
                 sender_email=sender_email,
@@ -728,7 +729,7 @@ def public_send_fax(token):
             )
         except Exception as e:
             logger.error(f"Cover page generation failed: {e}\n{traceback.format_exc()}")
-            final_pdf_bytes = raw_bytes
+            final_pdf_bytes = raw_bytes_list[0]
         
         target_drive = sender_email if sender_email in ADMIN_EMAILS else "admin@orientalbiz.ca"
         media_url = FaxManager.upload_to_onedrive(final_pdf_bytes, file_name, target_user=target_drive)
