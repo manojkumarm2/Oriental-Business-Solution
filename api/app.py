@@ -26,10 +26,6 @@ app = Flask(__name__)
 application = app
 CORS(app)
 
-# Create a temporary directory to host fax documents securely for Telnyx
-FAX_TEMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp_faxes')
-os.makedirs(FAX_TEMP_DIR, exist_ok=True)
-
 # --- Custom Logging Setup with Dynamic User Tracking ---
 class ContextualUserFilter(logging.Filter):
     """
@@ -277,6 +273,15 @@ def init_sqlite_db():
                 status TEXT DEFAULT 'Pending',
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS fax_logs (
+                fax_id TEXT PRIMARY KEY,
+                sender_email TEXT,
+                sender_name TEXT,
+                to_number TEXT,
+                status TEXT DEFAULT 'queued',
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )''')
         
         for table in ['personal_tax', 'cvitp_tax']:
             cursor.execute(f"PRAGMA table_info({table})")
@@ -311,6 +316,15 @@ def init_sqlite_db():
         columns = [col[1] for col in cursor.fetchall()]
         if 'duration' not in columns:
             cursor.execute("ALTER TABLE cvitpCallHistory ADD COLUMN duration INTEGER")
+
+        cursor.execute("PRAGMA table_info(fax_logs)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'direction' not in columns:
+            cursor.execute("ALTER TABLE fax_logs ADD COLUMN direction TEXT DEFAULT 'outbound'")
+        if 'media_url' not in columns:
+            cursor.execute("ALTER TABLE fax_logs ADD COLUMN media_url TEXT")
+        if 'from_number' not in columns:
+            cursor.execute("ALTER TABLE fax_logs ADD COLUMN from_number TEXT")
 
         conn.commit()
 
@@ -558,13 +572,39 @@ def create_cvitp_call_log():
         return jsonify({'message': 'Failed archiving communication metric.'}), 500
 
 # --- Fax Management Routes ---
-API_DOMAIN = os.getenv('API_DOMAIN')
-@app.route('/api/public/fax-media/<filename>', methods=['GET'])
-def get_fax_media(filename):
-    file_path = os.path.join(FAX_TEMP_DIR, filename)
-    if os.path.exists(file_path):
-        return send_file(file_path, mimetype='application/pdf')
-    return jsonify({"error": "File not found"}), 404
+@app.route('/api/faxes', methods=['GET'])
+@app.route('/faxes', methods=['GET'])
+@validate_token
+def get_faxes():
+    if g.user_email not in ADMIN_EMAILS:
+        return jsonify({'message': 'Unauthorized access.'}), 403
+        
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            # Retrieve latest faxes first
+            cursor.execute("SELECT * FROM fax_logs ORDER BY createdAt DESC")
+            rows = cursor.fetchall()
+            
+        faxes = []
+        for row in rows:
+            faxes.append({
+                'fax_id': row['fax_id'],
+                'date_time': row['createdAt'],
+                'name': row['sender_name'],
+                'email': row['sender_email'],
+                'to_number': row['to_number'],
+                'from_number': row['from_number'],
+                'status': row['status'],
+                'direction': row['direction'],
+                'document_link': row['media_url']
+            })
+            
+        return jsonify(faxes), 200
+    except Exception as e:
+        logger.error(f"Failed to retrieve faxes: {str(e)}")
+        return jsonify({'message': 'Server error reading faxes.'}), 500
 
 @app.route('/api/send-fax', methods=['POST'])
 @validate_token
@@ -576,10 +616,8 @@ def send_fax_route():
         if not to_number or not file:
             return jsonify({'detail': 'Missing recipient number or document.'}), 400
             
-        # Temporarily host the file securely so Telnyx can download it
         file_id = str(uuid.uuid4())
         file_name = f"{file_id}.pdf"
-        file_path = os.path.join(FAX_TEMP_DIR, file_name)
         
         sender_name = request.form.get('sender_name', 'Oriental Biz')
         sender_email = request.form.get('sender_email', getattr(g, 'user_email', ''))
@@ -587,9 +625,10 @@ def send_fax_route():
         subject = request.form.get('subject', '')
         message = request.form.get('message', '')
 
+        raw_bytes = file.read()
         try:
-            merged_pdf_bytes = FaxManager.create_cover_page_and_merge(
-                file.read(),
+            final_pdf_bytes = FaxManager.create_cover_page_and_merge(
+                raw_bytes,
                 to_number=to_number,
                 sender_name=sender_name,
                 sender_email=sender_email,
@@ -597,17 +636,24 @@ def send_fax_route():
                 subject=subject,
                 message=message
             )
-            with open(file_path, 'wb') as f:
-                f.write(merged_pdf_bytes)
         except Exception as e:
-            logger.error(f"Cover page generation failed: {e}")
-            file.seek(0)
-            file.save(file_path)
+            logger.error(f"Cover page generation failed: {e}\n{traceback.format_exc()}")
+            # Gracefully fallback to sending the original unmerged document
+            final_pdf_bytes = raw_bytes
 
-        domain = API_DOMAIN or request.url_root
-        
-        media_url = f"{domain}api/public/fax-media/{file_name}"
-        result = FaxManager.send_fax(to_number, media_url)
+        # Let OneDrive handle hosting the file
+        target_drive = sender_email if sender_email in ADMIN_EMAILS else "admin@orientalbiz.ca"
+        media_url = FaxManager.upload_to_onedrive(final_pdf_bytes, file_name, target_user=target_drive)
+        result = FaxManager.send_fax(to_number, media_url, sender_email, sender_name)
+        fax_id = result.get('fax_id')
+        if fax_id and sender_email:
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO fax_logs (fax_id, sender_email, sender_name, to_number, direction, media_url)
+                    VALUES (?, ?, ?, ?, 'outbound', ?)
+                """, (fax_id, sender_email, sender_name, to_number, media_url))
+                conn.commit()
         
         return jsonify(result), 200
     except ValueError as e:
@@ -660,10 +706,8 @@ def public_send_fax(token):
         if not to_number or not file:
             return jsonify({'detail': 'Missing recipient number or document.'}), 400
             
-        # Temporarily host the file securely so Telnyx can download it
         file_id = str(uuid.uuid4())
         file_name = f"{file_id}.pdf"
-        file_path = os.path.join(FAX_TEMP_DIR, file_name)
         
         sender_name = request.form.get('sender_name', 'Oriental Biz Client')
         sender_email = request.form.get('sender_email', '')
@@ -671,9 +715,10 @@ def public_send_fax(token):
         subject = request.form.get('subject', '')
         message = request.form.get('message', '')
 
+        raw_bytes = file.read()
         try:
-            merged_pdf_bytes = FaxManager.create_cover_page_and_merge(
-                file.read(),
+            final_pdf_bytes = FaxManager.create_cover_page_and_merge(
+                raw_bytes,
                 to_number=to_number,
                 sender_name=sender_name,
                 sender_email=sender_email,
@@ -681,15 +726,22 @@ def public_send_fax(token):
                 subject=subject,
                 message=message
             )
-            with open(file_path, 'wb') as f:
-                f.write(merged_pdf_bytes)
         except Exception as e:
-            logger.error(f"Cover page generation failed: {e}")
-            file.seek(0)
-            file.save(file_path)
+            logger.error(f"Cover page generation failed: {e}\n{traceback.format_exc()}")
+            final_pdf_bytes = raw_bytes
         
-        media_url = f"{request.url_root}api/public/fax-media/{file_name}"
-        result = FaxManager.send_fax(to_number, media_url)
+        target_drive = sender_email if sender_email in ADMIN_EMAILS else "admin@orientalbiz.ca"
+        media_url = FaxManager.upload_to_onedrive(final_pdf_bytes, file_name, target_user=target_drive)
+        result = FaxManager.send_fax(to_number, media_url, sender_email, sender_name)
+        fax_id = result.get('fax_id')
+        if fax_id and sender_email:
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO fax_logs (fax_id, sender_email, sender_name, to_number, direction, media_url)
+                    VALUES (?, ?, ?, ?, 'outbound', ?)
+                """, (fax_id, sender_email, sender_name, to_number, media_url))
+                conn.commit()
         
         # Invalidate the token immediately after successful transmission
         with sqlite3.connect(DB_FILE) as conn:
@@ -704,6 +756,72 @@ def public_send_fax(token):
     except Exception as e:
         logger.error(f"Server error handling public send_fax: {str(e)}")
         return jsonify({'detail': 'Failed to process fax request.'}), 500
+
+@app.route('/api/public/fax-webhook', methods=['POST'])
+@app.route('/public/fax-webhook', methods=['POST'])
+def telnyx_fax_webhook():
+    try:
+        data = request.get_json(force=True)
+        if not data:
+            return jsonify({'status': 'ignored'}), 200
+
+        event_data = data.get('data', {})
+        event_type = event_data.get('event_type')
+        payload = event_data.get('payload', {})
+        fax_id = payload.get('fax_id')
+        
+        if not fax_id:
+            return jsonify({'status': 'ignored'}), 200
+            
+        # Handle completely incoming fax payloads
+        if event_type == 'fax.received':
+            direction = payload.get('direction', 'inbound')
+            from_number = payload.get('from', '')
+            to_number_payload = payload.get('to', '')
+            media_url = payload.get('media_url', '')
+            status = payload.get('status', 'received')
+            caller_id = payload.get('caller_id', 'External Caller')
+            
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT OR IGNORE INTO fax_logs 
+                    (fax_id, sender_email, sender_name, to_number, from_number, direction, media_url, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (fax_id, 'Incoming', caller_id, to_number_payload, from_number, direction, media_url, status))
+                conn.commit()
+            return jsonify({'status': 'received'}), 200
+
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT sender_email, sender_name, to_number FROM fax_logs WHERE fax_id = ?", (fax_id,))
+            row = cursor.fetchone()
+            
+            if row:
+                sender_email, sender_name, to_number = row[0], row[1], row[2]
+                
+                if event_type == 'fax.queued':
+                    if sender_email:
+                        FaxManager.send_queued_email(sender_email, sender_name, to_number, fax_id)
+                    cursor.execute("UPDATE fax_logs SET status = 'queued' WHERE fax_id = ?", (fax_id,))
+                
+                elif event_type == 'fax.delivered':
+                    if sender_email:
+                        FaxManager.send_confirmation_email(sender_email, sender_name, to_number, fax_id)
+                    cursor.execute("UPDATE fax_logs SET status = 'delivered' WHERE fax_id = ?", (fax_id,))
+                    
+                elif event_type == 'fax.failed':
+                    failure_reason = payload.get('failure_reason', 'Unknown')
+                    if sender_email and hasattr(FaxManager, 'send_failure_email'):
+                        FaxManager.send_failure_email(sender_email, sender_name, to_number, fax_id, failure_reason)
+                    cursor.execute("UPDATE fax_logs SET status = 'failed' WHERE fax_id = ?", (fax_id,))
+                    
+            conn.commit()
+
+        return jsonify({'status': 'received'}), 200
+    except Exception as e:
+        logger.error(f"Error handling Telnyx fax webhook: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # Protected production environment strings from leaking to client responses
 @app.errorhandler(Exception)
