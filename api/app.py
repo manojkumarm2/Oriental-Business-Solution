@@ -596,10 +596,10 @@ class FaxHelper:
 
         # Let OneDrive handle hosting the file
         target_drive = sender_email if sender_email in ADMIN_EMAILS else "admin@orientalbiz.ca"
-        media_url = FaxManager.upload_to_onedrive(final_pdf_bytes, file_name, target_user=target_drive)
-        result = FaxManager.send_fax(to_number, media_url, sender_email, sender_name)
+        web_url, download_url = FaxManager.upload_to_onedrive(final_pdf_bytes, file_name, target_user=target_drive)
+        result = FaxManager.send_fax(to_number, download_url, sender_email, sender_name)
         
-        return result, media_url
+        return result, web_url
 
 
 @app.route('/api/faxes', methods=['GET'])
@@ -780,9 +780,18 @@ def telnyx_fax_webhook():
             direction = payload.get('direction', 'inbound')
             from_number = payload.get('from', '')
             to_number_payload = payload.get('to', '')
-            media_url = payload.get('media_url', '')
+            telnyx_media_url = payload.get('media_url', '')
             status = payload.get('status', 'received')
             caller_id = payload.get('caller_id', 'External Caller')
+            
+            # --- New Inbound Processing: Save to OneDrive permanently ---
+            media_url = telnyx_media_url
+            if telnyx_media_url and fax_id:
+                try:
+                    target_drive = "admin@orientalbiz.ca" 
+                    media_url = FaxManager.process_inbound_fax(telnyx_media_url, from_number, fax_id, target_drive)
+                except Exception as e:
+                    logger.error(f"Failed to process inbound fax to OneDrive: {e}")
             
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()

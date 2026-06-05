@@ -375,8 +375,28 @@ class FaxManager:
             logger.exception(f"💥 Failed to dispatch fax queued email via Graph API: {error_details}")
             return False
 
+    @classmethod
+    def process_inbound_fax(cls, media_url: str, from_number: str, fax_id: str, target_user: str = "admin@orientalbiz.ca") -> str:
+        logger.info(f"📥 Downloading inbound fax {fax_id} from Telnyx...")
+        headers = {"Authorization": f"Bearer {cls.TELNYX_API_KEY}"}
+        r = requests.get(media_url, headers=headers)
+        r.raise_for_status()
+        
+        # Format the from_number for the directory structure
+        clean_number = "".join(c for c in from_number if c.isdigit())
+        if not clean_number:
+            clean_number = "Unknown"
+            
+        now = datetime.utcnow()
+        folder_path = f"Received_Faxes/{clean_number}/{now.strftime('%Y/%m')}"
+        file_name = f"Inbound_{fax_id}.pdf"
+        
+        logger.info(f"☁️ Uploading inbound fax {fax_id} to OneDrive at {folder_path}...")
+        web_url, _ = cls.upload_to_onedrive(r.content, file_name, target_user, folder_path=folder_path)
+        return web_url
+
     @staticmethod
-    def upload_to_onedrive(file_bytes: bytes, file_name: str, target_user: str = "admin@orientalbiz.ca") -> str:
+    def upload_to_onedrive(file_bytes: bytes, file_name: str, target_user: str = "admin@orientalbiz.ca", folder_path: str = None) -> tuple:
         tenant_id = os.getenv('AZURE_TENANT_ID', "c4ea64ee-34b6-4a18-9339-8aff143c12d4")
         client_id = os.getenv('AZURE_CLIENT_ID', "ec39786f-9998-4a43-aef9-2d8148338b0b")
         client_secret = os.getenv('AZURE_CLIENT_SECRET')
@@ -400,9 +420,11 @@ class FaxManager:
 
         headers = {'Authorization': f'Bearer {access_token}'}
 
-        # 2. Push File to OneDrive (Organized by Year/Month)
+        # 2. Push File to OneDrive (Organized by Year/Month or dynamically)
         now = datetime.utcnow()
-        folder_path = f"Sent_Faxes/{now.strftime('%Y/%m')}"
+        if folder_path is None:
+            folder_path = f"Sent_Faxes/{now.strftime('%Y/%m')}"
+            
         upload_url = f"https://graph.microsoft.com/v1.0/users/{target_user}/drive/root:/{folder_path}/{file_name}:/content"
         
         upload_headers = headers.copy()
@@ -413,25 +435,19 @@ class FaxManager:
         item_data = upload_r.json()
         item_id = item_data.get('id')
 
-        # 3. Retrieve pre-authenticated direct download URL
+        # 3. Get the permanent web URL for database/dashboard
+        web_url = item_data.get('webUrl', '')
+
+        # 4. Retrieve pre-authenticated direct download URL for immediate Telnyx transmission
         download_url = item_data.get('@microsoft.graph.downloadUrl')
         
         if not download_url:
             get_url = f"https://graph.microsoft.com/v1.0/users/{target_user}/drive/items/{item_id}?$select=id,@microsoft.graph.downloadUrl"
             get_r = requests.get(get_url, headers=headers)
             get_r.raise_for_status()
-            download_url = get_r.json().get('@microsoft.graph.downloadUrl')
+            download_url = get_r.json().get('@microsoft.graph.downloadUrl', '')
 
-        if download_url:
-            return download_url
-
-        # Fallback (may fail for bots due to MS restrictions)
-        link_url = f"https://graph.microsoft.com/v1.0/users/{target_user}/drive/items/{item_id}/createLink"
-        link_r = requests.post(link_url, headers=headers, json={"type": "view", "scope": "anonymous"})
-        link_r.raise_for_status()
-        web_url = link_r.json().get('link', {}).get('webUrl', '')
-
-        return f"{web_url}&download=1" if "?" in web_url else f"{web_url}?download=1"
+        return web_url, download_url
 
     @staticmethod
     def send_confirmation_email(client_email: str, sender_name: str, to_number: str, fax_id: str):
