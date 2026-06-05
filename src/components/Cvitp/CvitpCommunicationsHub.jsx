@@ -6,6 +6,16 @@ const extractPurePhoneNumber = (incomingCallObj) => {
   if (!incomingCallObj) return "";
 
   try {
+    const info = incomingCallObj.callerInfo;
+    if (info?.displayName && !info.displayName.includes("acs:")) {
+      return info.displayName;
+    }
+
+    const identifierObj = info?.identifier || incomingCallObj.identifier;
+    if (identifierObj?.phoneNumber) {
+      return identifierObj.phoneNumber.replace("4:8:acs:", "").replace("4:", "");
+    }
+
     const callCore = incomingCallObj._callCommon || incomingCallObj._call || incomingCallObj;
     if (callCore) {
       const pMap = callCore._mriToRemoteParticipantMap || callCore.mriToRemoteParticipantMap;
@@ -27,26 +37,23 @@ const extractPurePhoneNumber = (incomingCallObj) => {
       }
     }
 
-    const info = incomingCallObj.callerInfo;
-    const identifierObj = info?.identifier || incomingCallObj.identifier;
-
-    if (identifierObj?.phoneNumber) {
-      return identifierObj.phoneNumber.replace("4:8:acs:", "").replace("4:", "");
-    }
-
     const rawId = identifierObj?.rawId || "";
     if (rawId && !rawId.includes("communicationUser")) {
       return rawId.replace("4:8:acs:", "").replace("4:", "");
-    }
-
-    if (info?.displayName && !info.displayName.includes("acs:")) {
-      return info.displayName;
     }
   } catch (err) {
     console.warn("Telemetry parsing exception dropped:", err);
   }
 
-  return "Internal VoIP Line"; 
+  return "Unknown Line"; 
+};
+
+// Standard DTMF Frequency Grid Mapping Matrix
+const DTMF_FREQUENCIES = {
+  '1': { low: 697, high: 1209 }, '2': { low: 697, high: 1336 }, '3': { low: 697, high: 1477 },
+  '4': { low: 770, high: 1209 }, '5': { low: 770, height: 1336 }, '6': { low: 770, high: 1477 },
+  '7': { low: 852, high: 1209 }, '8': { low: 852, high: 1336 }, '9': { low: 852, high: 1477 },
+  '*': { low: 941, high: 1209 }, '0': { low: 941, high: 1336 }, '#': { low: 941, high: 1477 }
 };
 
 const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntries, dialNumber, setDialNumber, refreshTrigger, isDialerOpen, setIsDialerOpen }) => {
@@ -60,9 +67,11 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
   const [showAllHistory, setShowAllHistory] = useState(false); 
   const [incomingCall, setIncomingCall] = useState(null);
   const [isRingtoneSilenced, setIsRingtoneSilenced] = useState(false); 
-  
-  // Tab Navigation Handling Parameter ('dialer' or 'history')
   const [activeSubTab, setActiveSubTab] = useState('dialer');
+  
+  // Track active call parameters specifically for the persistent screen overlay view
+  const [activeCallSessionPhone, setActiveCallSessionPhone] = useState("");
+  const [isIncomingActiveOverlay, setIsIncomingActiveOverlay] = useState(false);
 
   const callAgentRef = useRef(null);
   const callRef = useRef(null);
@@ -70,8 +79,74 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
   const timerRef = useRef(null);
   const syncTimerRef = useRef(null);
   const callStartTimeRef = useRef(null);
+  const audioCtxRef = useRef(null);
 
-  // --- 🔟 AUTOMATED 10-DIGIT LOOKUP TRANSLATOR KEY ---
+  const playDtmfTone = (digit) => {
+    const tones = DTMF_FREQUENCIES[digit];
+    if (!tones) return;
+
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const oscLow = ctx.createOscillator();
+      const oscHigh = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscLow.type = 'sine';
+      oscLow.frequency.setValueAtTime(tones.low, ctx.currentTime);
+      oscHigh.type = 'sine';
+      oscHigh.frequency.setValueAtTime(tones.high, ctx.currentTime);
+
+      gainNode.gain.setValueAtTime(0.12, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+
+      oscLow.connect(gainNode);
+      oscHigh.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscLow.start();
+      oscHigh.start();
+      oscLow.stop(ctx.currentTime + 0.3);
+      oscHigh.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+      console.warn("DTMF Synthesis interrupted:", e);
+    }
+  };
+
+  const handleKeyPress = (digit) => {
+    playDtmfTone(digit);
+    setDialNumber(prev => prev + digit);
+  };
+
+  const handleBackspace = () => {
+    setDialNumber(prev => {
+      if (prev.startsWith('+1') && prev.length <= 2) return '+1';
+      if (prev.length <= 1) return '';
+      return prev.slice(0, -1);
+    });
+  };
+
+  useEffect(() => {
+    if (activeSubTab !== 'dialer' || !isDialerOpen || calling) return;
+    const handleWindowKeyDown = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const key = e.key;
+      if (DTMF_FREQUENCIES[key]) {
+        e.preventDefault();
+        handleKeyPress(key);
+      } else if (key === 'Backspace') {
+        e.preventDefault();
+        handleBackspace();
+      }
+    };
+    window.addEventListener('keydown', handleWindowKeyDown);
+    return () => window.removeEventListener('keydown', handleWindowKeyDown);
+  }, [activeSubTab, isDialerOpen, calling]);
+
   const taxpayerPhoneMap = useMemo(() => {
     const map = {};
     taxEntries.forEach(entry => {
@@ -86,14 +161,11 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     return map;
   }, [taxEntries]);
 
-  // Helper utility function to translate a history entry number to a client display name
   const resolveCallerIdentity = (rawNumber) => {
     if (!rawNumber) return "Unknown Caller";
-    
     if (rawNumber === "Internal VoIP Line" || rawNumber === "Internal Call") {
       return "Internal Staff Representative";
     }
-
     const cleanDigits = rawNumber.replace(/[^0-9]/g, "");
     if (cleanDigits.length >= 10) {
       const tenDigitKey = cleanDigits.slice(-10);
@@ -108,13 +180,11 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     return extractPurePhoneNumber(incomingCall);
   }, [incomingCall]);
 
-  // Computed slice for the communications sub-card layout view
   const displayedHistory = useMemo(() => {
     if (showAllHistory) return callHistory;
     return callHistory.slice(0, 5);
   }, [callHistory, showAllHistory]);
 
-  // Group the currently displayed history by date
   const groupedHistory = useMemo(() => {
     const groups = { Today: [], Yesterday: [], Older: [] };
     const today = new Date();
@@ -125,14 +195,11 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     displayedHistory.forEach(c => {
       const parseableTime = c.time.includes(',') ? c.time : c.time.replace(' ', 'T'); 
       const recordDate = new Date(parseableTime);
-      
       if (isNaN(recordDate.getTime())) {
         groups.Older.push(c);
         return;
       }
-      
       recordDate.setHours(0, 0, 0, 0);
-      
       if (recordDate.getTime() === today.getTime()) {
         groups.Today.push(c);
       } else if (recordDate.getTime() === yesterday.getTime()) {
@@ -144,7 +211,6 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     return groups;
   }, [displayedHistory]);
 
-  // Fetch Call History isolated loop
   useEffect(() => {
     const fetchHistory = async () => {
       if (!account) return;
@@ -164,7 +230,6 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     fetchHistory();
   }, [account, msalInstance, refreshTrigger]);
 
-  // Auto-switch to Dialer tab if a phone number is triggered via props
   useEffect(() => {
     if (dialNumber && dialNumber !== "+1") {
       setActiveSubTab('dialer');
@@ -175,15 +240,8 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     if (!number || number === "Internal VoIP Line") return; 
     try {
       const tokenResponse = await msalInstance.acquireTokenSilent({ ...loginRequest, account });
-      const payload = {
-        number,
-        type,
-        status,
-        time: customTime || new Date().toLocaleString()
-      };
-      if (duration !== null) {
-        payload.duration = duration;
-      }
+      const payload = { number, type, status, time: customTime || new Date().toLocaleString() };
+      if (duration !== null) payload.duration = duration;
       
       await fetch(getApiUrl('/api/cvitp/call-history'), {
         method: 'POST',
@@ -248,6 +306,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       timerRef.current = null;
     }
     callStartTimeRef.current = null;
+    setCallDuration(0);
   };
 
   const formatDuration = (sec) => {
@@ -273,6 +332,8 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
         setIsMuted(false);
         setIsOnHold(false);
         setIncomingCall(null);
+        setIsIncomingActiveOverlay(false);
+        setActiveCallSessionPhone("");
         setCallStatus("");
         handleLogCallToDatabase(number, type, "Disconnected", null, finalDuration);
       }
@@ -288,6 +349,11 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       if (!agent) throw new Error("Call agent not ready");
       let number = dialNumber.startsWith("+") ? dialNumber : "+1" + dialNumber.replace(/[^0-9]/g, "");
       if (number.length < 10) throw new Error("Enter a valid phone number");
+      
+      // Assign parameters for the outgoing screen track overlay
+      setActiveCallSessionPhone(number);
+      setIsIncomingActiveOverlay(true);
+
       const call = await agent.startCall(
         [{ phoneNumber: number }],
         { alternateCallerId: { phoneNumber: "+16478475477" } }
@@ -299,6 +365,8 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     } catch (err) {
       setCallStatus("Error: " + err.message);
       setCalling(false);
+      setIsIncomingActiveOverlay(false);
+      setActiveCallSessionPhone("");
     }
   };
 
@@ -314,6 +382,11 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
 
     try {
       setCallDuration(0);
+      
+      // Transition from incoming setup to live conversation layout view state
+      setActiveCallSessionPhone(activeTargetPhone);
+      setIsIncomingActiveOverlay(true);
+
       const activeCall = await incomingCall.accept();
       callRef.current = activeCall;
       setIncomingCall(null);
@@ -325,6 +398,8 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       setCallStatus("Error answering: " + err.message);
       setIncomingCall(null);
       setCalling(false);
+      setIsIncomingActiveOverlay(false);
+      setActiveCallSessionPhone("");
     }
   };
 
@@ -351,6 +426,8 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       console.error(err);
     }
     setCalling(false);
+    setIsIncomingActiveOverlay(false);
+    setActiveCallSessionPhone("");
     setCallStatus("");
   };
 
@@ -359,6 +436,9 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       try { await callRef.current.hangUp({ forEveryone: true }); } catch (err) { console.error(err); }
     }
     setCalling(false);
+    stopTimer();
+    setIsIncomingActiveOverlay(false);
+    setActiveCallSessionPhone("");
     setCallStatus("");
   };
 
@@ -401,10 +481,12 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       if (disposed) return;
 
       setIncomingCall(call);
+      setIsIncomingActiveOverlay(true); // Bring up fullscreen mobile interface template
       setIsRingtoneSilenced(false);
       setIsDialerOpen(true);
       
       const displayId = extractPurePhoneNumber(call);
+      setActiveCallSessionPhone(displayId);
       console.log("🚀 Extracted Identity Number for History logging loop:", displayId);
 
       stopRingtone();
@@ -457,6 +539,8 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
                 stopRingtone();
                 setIncomingCall(null);
                 setCalling(false);
+                setIsIncomingActiveOverlay(false);
+                setActiveCallSessionPhone("");
                 setCallStatus("");
               }
             }
@@ -472,6 +556,8 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
         stopRingtone();
         setIncomingCall(prev => (prev === call ? null : prev));
         setCalling(false);
+        setIsIncomingActiveOverlay(false);
+        setActiveCallSessionPhone("");
         setCallStatus("");
       });
     };
@@ -516,11 +602,94 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       if (syncTimerRef.current) { clearInterval(syncTimerRef.current); syncTimerRef.current = null; }
       if (window.__acsCallAgent) window.__acsCallAgent.off('incomingCall', incomingCallHandler);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, msalInstance, isInitialized, taxpayerPhoneMap]);
+
+  const dialerKeys = [
+    { key: '1', label: '—' },   { key: '2', label: 'abc' }, { key: '3', label: 'def' },
+    { key: '4', label: 'ghi' }, { key: '5', label: 'jkl' }, { key: '6', label: 'mno' },
+    { key: '7', label: 'pqrs' },{ key: '8', label: 'tuv' }, { key: '9', label: 'wxyz' },
+    { key: '*', label: '' },    { key: '0', label: '' },    { key: '#', label: '' }
+  ];
 
   return (
     <>
+      <style>{`
+        .glass-dark-canvas {
+          background: #111827;
+          color: #FFFFFF;
+        }
+        .dial-circle-btn {
+          width: 68px; height: 68px;
+          border-radius: 50%;
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          transition: background-color 0.2s ease, transform 0.1s ease;
+          border: none;
+        }
+        .dial-circle-btn:active {
+          transform: scale(0.92);
+        }
+        .btn-mute-style {
+          background-color: #1F2937;
+          color: #FFFFFF;
+        }
+        .btn-mute-style.silenced-active, .btn-mute-style.active-call-muted {
+          background-color: #4B5563;
+          color: #FBBF24;
+        }
+        .btn-decline-style {
+          background-color: #DC2626;
+          color: #FFFFFF;
+        }
+        .btn-accept-style {
+          background-color: #16A34A;
+          color: #FFFFFF;
+        }
+        .action-label-text {
+          font-size: 12px;
+          color: #9CA3AF;
+          margin-top: 8px;
+          display: block;
+          font-weight: 400;
+        }
+        .profile-silhouette-circle {
+          width: 140px;
+          height: 140px;
+          border-radius: 50%;
+          background-color: #2563EB;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+        }
+        .top-pill-indicator {
+          width: 110px;
+          height: 14px;
+          background-color: #06B6D4;
+          border-radius: 100px;
+          margin: 0 auto;
+        }
+        .high-contrast-number-badge {
+          background: rgba(255, 255, 255, 0.12);
+          color: #E2E8F0 !important;
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          font-size: 15px !important;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+          padding: 6px 16px !important;
+          border-radius: 8px;
+          display: inline-block;
+          font-family: monospace;
+        }
+        .call-timer-ticker {
+          font-size: 26px;
+          font-weight: 700;
+          color: #10B981;
+          font-family: monospace;
+          letter-spacing: 1px;
+        }
+      `}</style>
+
       <div 
         className={`offcanvas offcanvas-end dialer-offcanvas ${isDialerOpen ? 'show' : ''}`} 
         style={{ 
@@ -535,64 +704,147 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
           <button type="button" className="btn-close" onClick={() => setIsDialerOpen(false)}></button>
         </div>
         
-        <div className="offcanvas-body p-0 bg-light position-relative">
-          {/* --- 🔔 INLINE DRAWER BOX OVERLAY (DIALER OVERLAY PLACEMENT RESTORED) --- */}
-          {incomingCall && (
+        <div className="offcanvas-body p-0 bg-white position-relative">
+          
+          {/* --- ✅ NEW PERSISTENT CALL INTERFACE OVERLAY --- */}
+          {isIncomingActiveOverlay && (
             <div 
-              className="card border-0 shadow-lg position-absolute w-100 top-0 start-0 h-100 bg-white"
-              style={{ zIndex: 1100 }}
+              className="position-absolute w-100 top-0 start-0 h-100 glass-dark-canvas p-4 d-flex flex-column justify-content-between text-center animate-fade-in"
+              style={{ zIndex: 1200 }}
             >
-              <div className="text-dark text-center py-3 px-2 bg-warning fw-bold">
-                <div className="fs-3 mb-1">{isRingtoneSilenced ? '🔕' : '⚡'}</div>
-                <h6 className="fw-black text-uppercase tracking-wider mb-0 small">
-                  {isRingtoneSilenced ? "Line Ringing Silently" : "Incoming Communication Line"}
-                </h6>
+              {/* Top Accent Bar Pillar Wrapper */}
+              <div className="mt-4">
+                <div className="top-pill-indicator"></div>
+                <div className="mt-3">
+                  {calling && callDuration > 0 ? (
+                    <span className="text-uppercase tracking-widest text-success fw-bold font-monospace px-3 py-1 bg-success bg-opacity-10 rounded-pill" style={{ fontSize: '11px' }}>
+                      🟢 Live Connection
+                    </span>
+                  ) : calling ? (
+                    <span className="text-uppercase tracking-widest text-warning fw-bold font-monospace px-3 py-1 bg-warning bg-opacity-10 rounded-pill" style={{ fontSize: '11px' }}>
+                      🟡 Handshake Routing...
+                    </span>
+                  ) : (
+                    <span className="text-uppercase tracking-widest text-info fw-bold font-monospace px-3 py-1 bg-info bg-opacity-10 rounded-pill" style={{ fontSize: '11px' }}>
+                      {isRingtoneSilenced ? "🔕 Ringing Silently" : "🚨 Incoming Line"}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="card-body p-4 d-flex flex-column justify-content-center text-center">
-                <div className="mb-3">
-                  <label className="text-uppercase text-muted fs-8 tracking-widest d-block mb-1 fw-bold">Resolved Identity</label>
-                  <h3 className="fw-black text-dark mb-1 text-truncate px-1">
-                    {resolveCallerIdentity(currentIncomingPhone)}
-                  </h3>
-                  <span className="badge bg-light text-muted border font-monospace px-2 py-1 fs-8">
-                    {currentIncomingPhone || "PSTN Call Line"}
-                  </span>
+
+              {/* Central Identity Profile Circle Frame Frame */}
+              <div className="my-auto d-flex flex-column align-items-center">
+                <div className="profile-silhouette-circle mb-4">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="#FFFFFF"/>
+                  </svg>
                 </div>
                 
-                <div className="d-flex flex-column gap-2 mt-2 w-100 px-2">
-                  <button 
-                    className="btn btn-success btn-lg py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2 fs-6" 
-                    onClick={handleAcceptCall}
-                    style={{ borderRadius: '10px' }}
-                  >
-                    📞 Connect Call Leg
-                  </button>
-                  
-                  <button 
-                    type="button"
-                    className={`btn py-2 fw-bold border shadow-sm d-flex align-items-center justify-content-center gap-2 fs-7 ${
-                      isRingtoneSilenced ? 'btn-light text-muted' : 'btn-outline-secondary text-dark'
-                    }`}
-                    onClick={handleSilenceLocalRingtone}
-                    disabled={isRingtoneSilenced}
-                    style={{ borderRadius: '10px' }}
-                  >
-                    {isRingtoneSilenced ? "🔕 Ringtone Muted" : "Mute Sound"}
-                  </button>
+                {/* Resolved Contact Name Identification */}
+                <h2 className="fw-bold text-white text-truncate w-100 px-3 mb-3" style={{ fontSize: '32px', letterSpacing: '-0.5px' }}>
+                  {resolveCallerIdentity(activeCallSessionPhone)}
+                </h2>
 
-                  <button 
-                    className="btn btn-danger btn-sm py-2 fw-medium mt-1 fs-7" 
-                    onClick={handleDeclineCall}
-                    style={{ borderRadius: '10px' }}
-                  >
-                    🛑 Decline & Release Line
-                  </button>
+                {/* Live High-Contrast Variable Output Block Badge */}
+                <div className="mb-3">
+                  <span className="high-contrast-number-badge">
+                    {activeCallSessionPhone || "Private Secure Trunk"}
+                  </span>
                 </div>
+
+                {/* ⏱️ REAL-TIME TIMER TICKER INJECTION TRACK */}
+                {calling && callDuration > 0 && (
+                  <div className="call-timer-ticker mt-1 animate-pulse">
+                    {formatDuration(callDuration)}
+                  </div>
+                )}
+
+                <small className="text-muted text-uppercase tracking-widest fw-semibold mt-3" style={{ fontSize: '10px' }}>
+                  Oriental Business Solutions
+                </small>
+              </div>
+
+              {/* Action Handset Grid Footers */}
+              <div className="mb-5 px-2">
+                {calling ? (
+                  /* --- ACTIVE CONVERSATION CONTROL ENGINE HUD LAYOUT --- */
+                  <div className="d-flex justify-content-center align-items-center gap-4 mx-auto w-100" style={{ maxWidth: '310px' }}>
+                    <div className="d-flex flex-column align-items-center">
+                      <button 
+                        type="button"
+                        className={`dial-circle-btn shadow btn-mute-style ${isMuted ? 'active-call-muted' : ''}`}
+                        onClick={handleToggleMute}
+                      >
+                        <span className="fs-4">{isMuted ? "🎙️" : "🎙️"}</span>
+                      </button>
+                      <span className="action-label-text">{isMuted ? "Unmute" : "Mute Mic"}</span>
+                    </div>
+
+                    <div className="d-flex flex-column align-items-center">
+                      <button 
+                        type="button"
+                        className="dial-circle-btn shadow btn-decline-style"
+                        onClick={handleHangUp}
+                        style={{ width: '80px', height: '80px' }}
+                      >
+                        <span className="fs-3" style={{ transform: 'rotate(135deg)', display: 'inline-block' }}>📞</span>
+                      </button>
+                      <span className="action-label-text fw-bold" style={{ color: '#EF4444' }}>End Call</span>
+                    </div>
+
+                    <div className="d-flex flex-column align-items-center">
+                      <button 
+                        type="button"
+                        className={`dial-circle-btn shadow btn-mute-style ${isOnHold ? 'active-call-muted' : ''}`}
+                        onClick={handleToggleHold}
+                      >
+                        <span className="fs-4">{isOnHold ? "▶️" : "⏸️"}</span>
+                      </button>
+                      <span className="action-label-text">{isOnHold ? "Resume" : "Hold"}</span>
+                    </div>
+                  </div>
+                ) : (
+                  /* --- BASELINE INCOMING ACTION CONTROLS HUD LAYOUT --- */
+                  <div className="d-flex justify-content-around align-items-center mx-auto w-100" style={{ maxWidth: '310px' }}>
+                    <div className="d-flex flex-column align-items-center">
+                      <button 
+                        type="button"
+                        className={`dial-circle-btn shadow btn-mute-style ${isRingtoneSilenced ? 'silenced-active' : ''}`}
+                        onClick={handleSilenceLocalRingtone}
+                        disabled={isRingtoneSilenced}
+                      >
+                        <span className="fs-4">🔔</span>
+                      </button>
+                      <span className="action-label-text">Mute Ring</span>
+                    </div>
+
+                    <div className="d-flex flex-column align-items-center">
+                      <button 
+                        type="button"
+                        className="dial-circle-btn shadow btn-decline-style"
+                        onClick={handleDeclineCall}
+                      >
+                        <span className="fs-4" style={{ transform: 'rotate(135deg)', display: 'inline-block' }}>📞</span>
+                      </button>
+                      <span className="action-label-text" style={{ color: '#EF4444' }}>Decline</span>
+                    </div>
+
+                    <div className="d-flex flex-column align-items-center">
+                      <button 
+                        type="button"
+                        className="dial-circle-btn shadow btn-accept-style"
+                        onClick={handleAcceptCall}
+                      >
+                        <span className="fs-4">📞</span>
+                      </button>
+                      <span className="action-label-text" style={{ color: '#10B981' }}>Accept</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Sub-tab Navigation Panel wrapper header */}
           <div className="card border-0 bg-transparent overflow-hidden h-100 d-flex flex-column">
             <div className="card-header bg-white p-0 border-0 flex-shrink-0">
               <ul className="nav nav-tabs nav-justified border-bottom-0" style={{ fontSize: '14px' }}>
@@ -617,40 +869,101 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
               </ul>
             </div>
 
-            <div className="card-body p-4 flex-grow-1 overflow-auto">
-              {/* Render Tab Contents Depending on navigation parameters context */}
+            <div className="card-body p-4 flex-grow-1 overflow-auto bg-white">
               {activeSubTab === 'dialer' ? (
-                <div className="animate-fade-in">
-                  <input
-                    type="tel"
-                    className="form-control form-control-lg text-center fw-bold mb-3 bg-light border-0"
-                    value={dialNumber}
-                    onChange={e => setDialNumber(e.target.value)}
-                  />
-                  <div className="d-flex flex-wrap gap-2 mb-3">
-                    {[1,2,3,4,5,6,7,8,9,'*',0,'#'].map((n) => (
-                      <button key={n} className="btn btn-outline-light border text-dark flex-grow-1 py-2 fs-5" style={{ width: '28%', borderRadius: '8px' }} onClick={() => setDialNumber(dialNumber + n)}>{n}</button>
+                <div className="animate-fade-in mx-auto d-flex flex-column justify-content-between h-100" style={{ maxWidth: '340px' }}>
+                  <div className="w-100 mb-4 mt-2">
+                    <div className="position-relative w-100">
+                      <input
+                        type="tel"
+                        className="form-control form-control-lg text-start font-monospace ps-3 pe-5 border bg-white"
+                        value={dialNumber}
+                        readOnly
+                        style={{
+                          fontSize: '24px',
+                          letterSpacing: '0.5px',
+                          height: '64px',
+                          borderRadius: '16px',
+                          borderColor: '#E2E8F0',
+                          color: '#1E293B'
+                        }}
+                      />
+                      {dialNumber && dialNumber !== '+1' && (
+                        <button
+                          type="button"
+                          className="btn border-0 position-absolute end-0 top-50 translate-middle-y me-2 text-muted fs-4 p-2"
+                          onClick={handleBackspace}
+                          style={{ background: 'transparent' }}
+                        >
+                          ⌫
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="row g-3 text-center justify-content-center mb-4">
+                    {dialerKeys.map((item) => (
+                      <div key={item.key} className="col-4 d-flex justify-content-center">
+                        <button
+                          type="button"
+                          className="btn d-flex flex-column align-items-center justify-content-center border-0 p-0"
+                          onClick={() => handleKeyPress(item.key)}
+                          disabled={calling}
+                          style={{
+                            width: '76px',
+                            height: '76px',
+                            background: 'transparent',
+                            color: '#1E293B',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span className="fs-3 fw-normal lh-1">{item.key}</span>
+                          {item.label && (
+                            <span 
+                              className="text-uppercase text-muted tracking-wide d-block mt-0.5" 
+                              style={{ fontSize: '10px', fontWeight: '500' }}
+                            >
+                              {item.label}
+                            </span>
+                          )}
+                        </button>
+                      </div>
                     ))}
                   </div>
 
-                  {calling ? (
-                    <div className="d-flex flex-column gap-2">
-                      <div className="d-flex gap-2">
-                        <button type="button" className={`btn w-50 py-2 ${isMuted ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleMute}>{isMuted ? '🎙️ Unmute' : '🎙️ Mute'}</button>
-                        <button type="button" className={`btn w-50 py-2 ${isOnHold ? 'btn-warning' : 'btn-outline-secondary'}`} onClick={handleToggleHold}>{isOnHold ? '▶️ Resume' : '⏸️ Hold'}</button>
-                      </div>
-                      <button type="button" className="btn btn-danger btn-lg w-100 py-2 mt-2" onClick={handleHangUp}>Disconnect Call</button>
-                    </div>
-                  ) : (
-                    <button type="button" className="btn btn-success btn-lg w-100 py-2 fw-bold" onClick={handleCall} disabled={!dialNumber}>Initiate Call</button>
-                  )}
-                  
-                  <button type="button" className="btn btn-sm btn-link text-muted w-100 mt-2 text-decoration-none" onClick={() => setDialNumber('+1')}>Reset Selector</button>
+                  <div className="d-flex flex-column align-items-center justify-content-center mb-3">
+                    <button
+                      type="button"
+                      className="btn btn-success d-flex align-items-center justify-content-center shadow"
+                      onClick={handleCall}
+                      disabled={!dialNumber || dialNumber === '+1'}
+                      style={{
+                        width: '84px',
+                        height: '84px',
+                        borderRadius: '50%',
+                        background: '#86EFAC',
+                        border: 'none',
+                        color: '#FFFFFF',
+                        fontSize: '32px'
+                      }}
+                    >
+                      📞
+                    </button>
+
+                    {dialNumber && dialNumber !== '+1' && !calling && (
+                      <button 
+                        type="button" 
+                        className="btn btn-link btn-sm text-muted text-decoration-none mt-3 fw-medium" 
+                        onClick={() => setDialNumber('+1')}
+                      >
+                        Reset Number
+                      </button>
+                    )}
+                  </div>
 
                   {callStatus && (
-                    <div className="alert alert-dark mt-3 mb-0 d-flex justify-content-between align-items-center py-2 px-3 border-0 small">
-                      <span>{callStatus}</span>
-                      {calling && callDuration > 0 && <span className="badge bg-danger">{formatDuration(callDuration)}</span>}
+                    <div className="alert alert-dark mt-2 mb-0 d-flex justify-content-between align-items-center py-2 px-3 border-0 small w-100" style={{ borderRadius: '12px' }}>
+                      <span className="fw-medium">{callStatus}</span>
                     </div>
                   )}
                 </div>
@@ -666,14 +979,13 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
                             {group}
                           </li>
                           {groupedHistory[group].map((c, i) => (
-                            <li key={`${group}-${i}`} className="list-group-item px-0 d-flex justify-content-between align-items-center border-0 small">
-                              <div>
+                            <li key={`${group}-${i}`} className="list-group-item px-0 d-flex justify-content-between align-items-center border-0 small bg-white">
+                              <div className="ps-2">
                                 {c.type === 'outgoing' ? '📤' : '📥'}{' '}
                                 <span className="fw-bold text-dark">{resolveCallerIdentity(c.number)}</span>
                                 {resolveCallerIdentity(c.number) !== c.number && (
                                   <div className="text-muted" style={{ fontSize: '10px', marginLeft: '24px' }}>{c.number}</div>
                                 )}
-                                {/* Subtab Inline dial trigger hyperlink configuration loop map hooks */}
                                 <div className="mt-1" style={{ marginLeft: '24px' }}>
                                   <button 
                                     type="button" 
@@ -685,7 +997,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
                                   </button>
                                 </div>
                               </div>
-                              <span className="text-muted text-end" style={{ fontSize: '11px' }}>
+                              <span className="text-muted text-end pe-2" style={{ fontSize: '11px' }}>
                                 <span className={`badge px-1 py-0.5 fs-8 me-1 ${
                                   c.status === 'Connected' || c.status === 'Started' ? 'bg-success-subtle text-success' :
                                   c.status === 'Rejected' || c.status === 'Missed' ? 'bg-danger-subtle text-danger' : 'bg-light text-muted'
