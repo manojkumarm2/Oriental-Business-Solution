@@ -379,25 +379,42 @@ class FaxManager:
     def process_inbound_fax(cls, media_url: str, from_number: str, fax_id: str, target_user: str = "admin@orientalbiz.ca") -> str:
         logger.info(f"📥 Downloading inbound fax {fax_id} from Telnyx...")
         
-        headers = {}
+        headers = {'User-Agent': 'Mozilla/5.0'}
         # Pre-signed AWS S3 links will reject the request if we force an Auth header.
         if "api.telnyx.com" in media_url:
             headers["Authorization"] = f"Bearer {cls.TELNYX_API_KEY}"
             
-        r = requests.get(media_url, headers=headers)
-        r.raise_for_status()
+        try:
+            # Prevent requests from parsing/re-encoding the pre-signed S3 URL which breaks AWS signatures
+            session = requests.Session()
+            req = requests.Request('GET', media_url, headers=headers)
+            prep = req.prepare()
+            prep.url = media_url  # Force exact raw URL string
+            r = session.send(prep, timeout=30)
+            r.raise_for_status()
+            file_bytes = r.content
+        except Exception as e:
+            logger.warning(f"requests download failed, falling back to urllib: {e}")
+            import urllib.request
+            req = urllib.request.Request(media_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as response:
+                file_bytes = response.read()
         
         # Format the from_number for the directory structure
         clean_number = "".join(c for c in from_number if c.isdigit())
         if not clean_number:
             clean_number = "Unknown"
             
+        ext = ".pdf"
+        if ".tiff" in media_url.lower() or ".tif" in media_url.lower():
+            ext = ".tiff"
+            
         now = datetime.utcnow()
         folder_path = f"Received_Faxes/{clean_number}/{now.strftime('%Y/%m')}"
-        file_name = f"Inbound_{fax_id}.pdf"
+        file_name = f"Inbound_{fax_id}{ext}"
         
         logger.info(f"☁️ Uploading inbound fax {fax_id} to OneDrive at {folder_path}...")
-        web_url, _ = cls.upload_to_onedrive(r.content, file_name, target_user, folder_path=folder_path)
+        web_url, _ = cls.upload_to_onedrive(file_bytes, file_name, target_user, folder_path=folder_path)
         return web_url
 
     @staticmethod
@@ -433,7 +450,10 @@ class FaxManager:
         upload_url = f"https://graph.microsoft.com/v1.0/users/{target_user}/drive/root:/{folder_path}/{file_name}:/content"
         
         upload_headers = headers.copy()
-        upload_headers['Content-Type'] = 'application/pdf'
+        if file_name.lower().endswith('.tiff') or file_name.lower().endswith('.tif'):
+            upload_headers['Content-Type'] = 'image/tiff'
+        else:
+            upload_headers['Content-Type'] = 'application/pdf'
         
         upload_r = requests.put(upload_url, headers=upload_headers, data=file_bytes)
         upload_r.raise_for_status()
