@@ -18,6 +18,40 @@ const FaxDashboard = () => {
     }
   }, [account, isInitialized]);
 
+  const handleRequestFaxLink = async () => {
+    try {
+      const tokenResponse = await msalInstance.acquireTokenSilent({
+        ...loginRequest,
+        account,
+      });
+      
+      const response = await fetch(getApiUrl('/api/fax/generate-token'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${tokenResponse.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: '' }) // Left blank so you can enter it in the modal
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate fax token.');
+      }
+
+      const data = await response.json();
+      const generatedLink = `${window.location.origin}/send-fax/${data.token}`;
+      
+      portalState.setEmailModalConfig({
+        customer: { email: '', name: 'Client' },
+        action: 'requestFaxLink',
+        taxType: 'fax',
+        customData: { generatedLink }
+      });
+    } catch (err) {
+      alert(`Error generating fax link: ${err.message}`);
+    }
+  };
+
   const fetchFaxes = async () => {
     try {
       const tokenResponse = await msalInstance.acquireTokenSilent({
@@ -73,6 +107,9 @@ const FaxDashboard = () => {
           <div className="d-flex gap-2">
             <button onClick={fetchFaxes} className="btn btn-outline-primary shadow-sm">
               🔄 Refresh
+            </button>
+            <button onClick={handleRequestFaxLink} className="btn btn-info text-white fw-bold shadow-sm">
+              ✉️ Request Fax Link
             </button>
             <Link to="/send-fax" className="btn btn-primary fw-bold shadow-sm">
               ➕ Send Fax

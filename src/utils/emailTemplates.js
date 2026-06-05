@@ -281,5 +281,33 @@ export const emailTemplates = {
           📞 <a href="tel:+16478556177" style="color: #0056b3; text-decoration: none;">+1 (647) 855-6177</a></p>
         </div>
       `
+    },
+
+    faxRequestLink: {
+                subject: 'Secure Fax Submission Link from Oriental Business Solutions Inc.',
+                bodyTemplate: (generatedLink) => `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; padding: 30px; border-radius: 8px;">
+                        <h2 style="color: #1A1A4B; border-bottom: 2px solid #4A6EC9; padding-bottom: 10px;">Secure Fax Submission Link</h2>
+                        <p>Hello,</p>
+                        <p>Thank you for choosing Oriental Business Solutions Inc. for your secure document transmission needs.</p>
+                        <p>As requested, here is your unique and secure link to send your paper applications or documents via fax to the Canada Revenue Agency (CRA) or your desired destination. This link is valid for a <strong>single use</strong>.</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${generatedLink}" style="background-color: #4A6EC9; color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Click Here to Send Your Secure Fax</a>
+                        </div>
+                        <h3 style="color: #1A1A4B; font-size: 16px;">Instructions:</h3>
+                        <ol style="padding-left: 20px; color: #555; line-height: 1.6;">
+                            <li>Click the secure link above.</li>
+                            <li>Fill in the recipient's fax number (e.g., the CRA fax number) and your details on the form.</li>
+                            <li>Attach your paper application or documents (PDF format, max 10MB).</li>
+                            <li>Click 'Send Secure Fax' to complete the process.</li>
+                        </ol>
+                        <p>If you have any questions or encounter any issues, please do not hesitate to contact us by replying to this email.</p>
+                        <p>Thank you.<br><br>
+                        Best regards,<br>
+                        <strong>Oriental Business Solutions Inc.</strong><br>
+                        📧 <a href="mailto:info@orientalbiz.ca" style="color: #0056b3; text-decoration: none;">info@orientalbiz.ca</a><br>
+                        📞 <a href="tel:+16478556177" style="color: #0056b3; text-decoration: none;">+1 (647) 855-6177</a></p>
+                    </div>
+                `,
     }
 };

@@ -39,7 +39,14 @@ export const sendEmailViaGraphAPI = async (msalInstance, account, emailConfig, t
                 address: "cvitp-team@orientalbiz.ca"
             }
         };
+    } else if (taxType.toLowerCase() === 'fax') {
+        mailPayload.message.from = {
+            emailAddress: {
+                address: "fax@orientalbiz.ca"
+            }
+        };
     }
+
 
     // 3. Make the API call
     const response = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
@@ -91,6 +98,11 @@ export const generateRequestDetailsDraft = async (config) => {
     let bodyTemplate;
 
     switch(action) {
+        case 'requestFaxLink':
+            template = emailTemplates.faxRequestLink;
+            bodyTemplate = template.bodyTemplate(customData.generatedLink);
+            break;
+            
         case 'requestEsign':
             switch(templateType.toLowerCase()) {
                 case 'personal': template = emailTemplates.personalRequestEsign; break;
