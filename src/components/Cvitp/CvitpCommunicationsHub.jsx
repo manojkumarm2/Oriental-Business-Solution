@@ -211,6 +211,29 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     return groups;
   }, [displayedHistory]);
 
+  // Gracefully terminate active calls if the user performs a hard browser refresh (F5/Cmd+R)
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (callRef.current && callRef.current.state !== 'Disconnected') {
+        e.preventDefault();
+        e.returnValue = 'You have an active call. Are you sure you want to leave? The call will be dropped.';
+      }
+    };
+
+    const handleUnload = () => {
+      if (callRef.current && callRef.current.state !== 'Disconnected') {
+        callRef.current.hangUp({ forEveryone: true }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchHistory = async () => {
       if (!account) return;
@@ -295,8 +318,15 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
 
   const startTimer = () => {
     if (!timerRef.current) {
-      callStartTimeRef.current = Date.now();
-      timerRef.current = setInterval(() => setCallDuration(prev => prev + 1), 1000);
+      if (!window.__acsCallStartTime) {
+        window.__acsCallStartTime = Date.now();
+      }
+      callStartTimeRef.current = window.__acsCallStartTime;
+      const elapsed = Math.floor((Date.now() - window.__acsCallStartTime) / 1000);
+      setCallDuration(elapsed);
+      timerRef.current = setInterval(() => {
+        setCallDuration(Math.floor((Date.now() - window.__acsCallStartTime) / 1000));
+      }, 1000);
     }
   };
 
@@ -306,6 +336,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       timerRef.current = null;
     }
     callStartTimeRef.current = null;
+    window.__acsCallStartTime = null;
     setCallDuration(0);
   };
 
@@ -334,6 +365,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
         setIncomingCall(null);
         setIsIncomingActiveOverlay(false);
         setActiveCallSessionPhone("");
+        window.__acsActiveCallNumber = null;
         setCallStatus("");
         handleLogCallToDatabase(number, type, "Disconnected", null, finalDuration);
       }
@@ -353,6 +385,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       // Assign parameters for the outgoing screen track overlay
       setActiveCallSessionPhone(number);
       setIsIncomingActiveOverlay(true);
+      window.__acsActiveCallNumber = number;
 
       const call = await agent.startCall(
         [{ phoneNumber: number }],
@@ -386,6 +419,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
       // Transition from incoming setup to live conversation layout view state
       setActiveCallSessionPhone(activeTargetPhone);
       setIsIncomingActiveOverlay(true);
+      window.__acsActiveCallNumber = activeTargetPhone;
 
       const activeCall = await incomingCall.accept();
       callRef.current = activeCall;
@@ -428,6 +462,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     setCalling(false);
     setIsIncomingActiveOverlay(false);
     setActiveCallSessionPhone("");
+    window.__acsActiveCallNumber = null;
     setCallStatus("");
   };
 
@@ -439,6 +474,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
     stopTimer();
     setIsIncomingActiveOverlay(false);
     setActiveCallSessionPhone("");
+    window.__acsActiveCallNumber = null;
     setCallStatus("");
   };
 
@@ -541,6 +577,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
                 setCalling(false);
                 setIsIncomingActiveOverlay(false);
                 setActiveCallSessionPhone("");
+                window.__acsActiveCallNumber = null;
                 setCallStatus("");
               }
             }
@@ -558,6 +595,7 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
         setCalling(false);
         setIsIncomingActiveOverlay(false);
         setActiveCallSessionPhone("");
+        window.__acsActiveCallNumber = null;
         setCallStatus("");
       });
     };
@@ -594,6 +632,32 @@ const CvitpCommunicationsHub = ({ account, msalInstance, isInitialized, taxEntri
         if (disposed) return;
         callAgentRef.current = window.__acsCallAgent;
         window.__acsCallAgent.on('incomingCall', incomingCallHandler);
+
+        // Check for existing active calls to resume session
+        if (window.__acsCallAgent.calls && window.__acsCallAgent.calls.length > 0) {
+          const activeCall = window.__acsCallAgent.calls[0];
+          callRef.current = activeCall;
+          setCalling(true);
+          
+          const number = window.__acsActiveCallNumber || extractPurePhoneNumber(activeCall);
+          setActiveCallSessionPhone(number);
+          setIsIncomingActiveOverlay(true);
+          setCallStatus("Call status: " + activeCall.state);
+          setIsMuted(activeCall.isMuted);
+          
+          if (activeCall.state === 'Connected') {
+            startTimer();
+          } else if (activeCall.state === 'LocalHold') {
+            setIsOnHold(true);
+          }
+          
+          attachCallStateHandler(activeCall, number, activeCall.direction === 'Incoming' ? 'incoming' : 'outgoing');
+          setIsDialerOpen(true);
+        } else if (window.__acsCallAgent.incomingCalls && window.__acsCallAgent.incomingCalls.length > 0) {
+          // Recover ringing incoming call
+          const incCall = window.__acsCallAgent.incomingCalls[0];
+          incomingCallHandler({ incomingCall: incCall });
+        }
       } catch (err) { setCallStatus("Azure setup error: " + err.message); }
     }
     setupAgent();
