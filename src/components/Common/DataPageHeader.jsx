@@ -36,7 +36,7 @@ const DataPageHeader = ({ title, description, account, onLogin, onLogout, msalIn
         <div className="action-block d-flex align-items-center justify-content-end gap-3">
           {account ? (
             <>
-              {setIsDialerOpen && !isDialerOpen && (
+              {setIsDialerOpen && (
                 <button 
                   className={'btn btn-success text-white shadow-sm d-flex align-items-center justify-content-center fw-bold dialer-btn rounded-pill px-4 gap-2 dialer-btn-closed'} 
                   onClick={() => setIsDialerOpen(!isDialerOpen)}
