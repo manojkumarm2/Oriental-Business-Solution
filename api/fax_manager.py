@@ -378,7 +378,12 @@ class FaxManager:
     @classmethod
     def process_inbound_fax(cls, media_url: str, from_number: str, fax_id: str, target_user: str = "admin@orientalbiz.ca") -> str:
         logger.info(f"📥 Downloading inbound fax {fax_id} from Telnyx...")
-        headers = {"Authorization": f"Bearer {cls.TELNYX_API_KEY}"}
+        
+        headers = {}
+        # Pre-signed AWS S3 links will reject the request if we force an Auth header.
+        if "api.telnyx.com" in media_url:
+            headers["Authorization"] = f"Bearer {cls.TELNYX_API_KEY}"
+            
         r = requests.get(media_url, headers=headers)
         r.raise_for_status()
         
