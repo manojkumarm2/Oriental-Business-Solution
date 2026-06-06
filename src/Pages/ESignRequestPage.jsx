@@ -116,6 +116,71 @@ const ESignRequestPage = () => {
     }
   };
 
+  const handleLocalFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!account) {
+      alert("Please sign in first (via the header).");
+      e.target.value = '';
+      return;
+    }
+
+    setIsFetchingLink(true);
+    setOnedriveId('');
+    setOnedriveDriveId(null);
+    setFileName('');
+
+    try {
+      const tokenResponse = await msalInstance.acquireTokenSilent({ scopes: ['Files.ReadWrite.All'], account });
+      
+      let matchedFiles = [];
+      
+      const searchPayload = {
+        requests: [{
+          entityTypes: ['driveItem'],
+          query: { queryString: `filename:"${file.name.replace(/"/g, '')}"` }
+        }]
+      };
+
+      const globalSearchResponse = await fetch('https://graph.microsoft.com/v1.0/search/query', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${tokenResponse.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(searchPayload)
+      });
+
+      if (globalSearchResponse.ok) {
+        const globalData = await globalSearchResponse.json();
+        const hits = globalData.value?.[0]?.hitsContainers?.[0]?.hits || [];
+        
+        matchedFiles = hits
+          .map(hit => hit.resource)
+          .filter(item => item && item.name === file.name && !item.folder);
+      }
+
+      if (matchedFiles.length === 0) {
+         alert("Could not find this file in your OneDrive or Shared folders. Ensure it's fully synced.");
+         return;
+      }
+
+      const selectedItem = matchedFiles[0];
+
+      setOnedriveId(selectedItem.id);
+      setOnedriveDriveId(selectedItem.parentReference?.driveId || null);
+      setFileName(selectedItem.name);
+
+    } catch (err) {
+      console.error(err);
+      alert('Could not match local file to OneDrive. ' + err.message);
+    } finally {
+      setIsFetchingLink(false);
+      e.target.value = ''; 
+    }
+  };
+
   const handleLogin = async () => {
     try {
       await msalInstance.loginRedirect(loginRequest);
@@ -234,109 +299,138 @@ const ESignRequestPage = () => {
         onLogout={handleLogout}
       />
 
-      <div className="container mt-4">
-        <div className="card shadow-sm mx-auto" style={{ maxWidth: '900px' }}>
-          <div className="card-header bg-white py-3 border-bottom d-flex align-items-center">
-            <h2 className="h5 mb-0 fw-bold text-primary">
-              {clientName ? `eSign Request: ${clientName}` : 'eSign Request & Draft Review Form'}
+      <div className="container mt-5">
+        <div className="card shadow-lg border-0 rounded-4 mx-auto" style={{ maxWidth: '850px' }}>
+          <div className="card-header bg-white pt-4 pb-3 px-4 px-md-5 border-bottom-0 rounded-top-4">
+            <h2 className="h4 mb-1 fw-bold text-primary d-flex align-items-center gap-2">
+              <span className="fs-3 lh-1">✍️</span>
+              {clientName ? `Draft Review: ${clientName}` : 'Secure eSign Request'}
             </h2>
+            <p className="text-muted mb-0 small ms-5">Configure and send a secure access link for client review and signature.</p>
           </div>
           
-          <div className="card-body p-4 p-md-5">
+          <div className="card-body p-4 p-md-5 pt-0">
             <form onSubmit={handleRegisterDocument}>
               {/* Client Details Section */}
-              <h5 className="mb-3 border-bottom pb-2 text-secondary fs-6 text-uppercase fw-semibold">Client Details</h5>
+              <div className="d-flex align-items-center mb-4 pb-2 border-bottom mt-3">
+                <span className="bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center me-3" style={{width: '32px', height: '32px'}}>1</span>
+                <h5 className="mb-0 text-dark fw-bold">Client Information</h5>
+              </div>
+              
               <div className="row g-4 mb-5">
                 <div className="col-md-6">
-                  <label className="form-label fw-medium text-dark">Client Name</label>
-                  <input type="text" className="form-control" value={clientName} onChange={(e) => setClientName(e.target.value)} required placeholder="John Doe" />
+                  <label className="form-label fw-semibold text-secondary small text-uppercase tracking-wider">Client Name</label>
+                  <input type="text" className="form-control form-control-lg bg-light" value={clientName} onChange={(e) => setClientName(e.target.value)} required placeholder="John Doe" />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label fw-medium text-dark">Client Email</label>
-                  <input type="email" className="form-control" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required placeholder="john@example.com" />
+                  <label className="form-label fw-semibold text-secondary small text-uppercase tracking-wider">Client Email</label>
+                  <input type="email" className="form-control form-control-lg bg-light" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required placeholder="john@example.com" />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label fw-medium text-dark">Tax Type</label>
-                  <select className="form-select" value={taxType} onChange={(e) => setTaxType(e.target.value)}>
+                  <label className="form-label fw-semibold text-secondary small text-uppercase tracking-wider">Tax Type</label>
+                  <select className="form-select form-select-lg bg-light" value={taxType} onChange={(e) => setTaxType(e.target.value)}>
                     <option value="Personal">Personal Tax (Paid)</option>
                     <option value="CVITP">CVITP Tax (Volunteer)</option>
                   </select>
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label fw-medium text-dark">Tax Year</label>
-                  <input type="number" className="form-control" value={taxYear} onChange={(e) => setTaxYear(e.target.value)} required />
+                  <label className="form-label fw-semibold text-secondary small text-uppercase tracking-wider">Tax Year</label>
+                  <input type="number" className="form-control form-control-lg bg-light" value={taxYear} onChange={(e) => setTaxYear(e.target.value)} required />
                 </div>
               </div>
 
               {/* Document Selection Section */}
-              <div className="mb-3 border-bottom pb-3">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="mb-0 text-secondary fs-6 text-uppercase fw-semibold">Document Selection</h5>
-                </div>
-                <div className="d-flex gap-2">
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="Or paste a OneDrive / SharePoint file link here..." 
-                    value={pastedLink} 
-                    onChange={(e) => setPastedLink(e.target.value)} 
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleFetchPastedLink();
-                      }
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary text-nowrap" 
-                    onClick={handleFetchPastedLink}
-                    disabled={!pastedLink.trim() || isFetchingLink}
-                  >
-                    {isFetchingLink ? 'Fetching...' : 'Fetch File'}
-                  </button>
-                </div>
+              <div className="d-flex align-items-center mb-4 pb-2 border-bottom">
+                <span className="bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center me-3" style={{width: '32px', height: '32px'}}>2</span>
+                <h5 className="mb-0 text-dark fw-bold">Document Source</h5>
+              </div>
+
+              <div className="p-4 bg-light rounded-4 border d-flex flex-column gap-3 mb-4">
+                  <label className={`btn btn-primary btn-lg fw-medium d-flex align-items-center justify-content-center gap-2 ${isFetchingLink ? 'disabled' : ''}`}>
+                    {isFetchingLink ? <><span className="spinner-border spinner-border-sm"></span> Syncing with Graph...</> : <>📂 Browse Local OneDrive Folder</>}
+                    <input 
+                      type="file" 
+                      className="d-none" 
+                      onChange={handleLocalFileSelect}
+                      disabled={isFetchingLink}
+                    />
+                  </label>
+                  
+                  <div className="d-flex align-items-center gap-3 text-muted my-1">
+                    <hr className="flex-grow-1 m-0 opacity-25" />
+                    <span className="small text-uppercase fw-bold text-secondary" style={{letterSpacing: '1px'}}>OR</span>
+                    <hr className="flex-grow-1 m-0 opacity-25" />
+                  </div>
+
+                  <div className="input-group shadow-sm rounded-3 overflow-hidden">
+                    <span className="input-group-text bg-white border-end-0 text-muted ps-3">🔗</span>
+                    <input 
+                      type="text" 
+                      className="form-control border-start-0 ps-0 form-control-lg" 
+                      placeholder="Paste SharePoint / OneDrive link..." 
+                      value={pastedLink} 
+                      onChange={(e) => setPastedLink(e.target.value)} 
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleFetchPastedLink();
+                        }
+                      }}
+                    />
+                    <button 
+                      type="button" 
+                      className="btn btn-dark px-4 fw-medium" 
+                      onClick={handleFetchPastedLink}
+                      disabled={!pastedLink.trim() || isFetchingLink}
+                    >
+                      {isFetchingLink ? 'Fetching...' : 'Fetch Link'}
+                    </button>
+                  </div>
+                  <div className="text-center mt-1 text-muted small">
+                    ℹ️ Ensure the local file is fully synced to the cloud before selecting.
+                  </div>
               </div>
 
               {/* Selected File Details */}
-              <div className="row g-3 mb-5">
-                <div className="col-md-12">
+              <div className="mb-5">
                    {fileName ? (
-                      <div className="p-3 bg-light border rounded d-flex align-items-center justify-content-between">
+                      <div className="p-4 bg-primary-subtle border border-primary-subtle rounded-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-sm">
                          <div className="d-flex align-items-center gap-3">
-                            <span className="fs-3">📄</span>
+                            <div className="bg-white p-3 rounded-circle shadow-sm d-flex align-items-center justify-content-center" style={{width: '60px', height: '60px'}}>
+                              <span className="fs-3 lh-1">📄</span>
+                            </div>
                             <div>
-                               <p className="mb-0 fw-bold text-dark">{fileName}</p>
-                               <small className="text-muted text-truncate d-block" style={{ maxWidth: '400px' }}>
+                               <p className="mb-1 fw-bold text-dark fs-5">{fileName}</p>
+                               <span className="badge bg-white text-secondary border font-monospace text-truncate d-inline-block shadow-sm" style={{ maxWidth: '300px' }}>
                                   ID: {onedriveId}
-                               </small>
+                               </span>
                             </div>
                          </div>
-                         <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => { setFileName(''); setOnedriveId(''); setOnedriveDriveId(null); }}>
-                            Clear Selection
+                         <button type="button" className="btn btn-outline-danger bg-white fw-medium px-3 shadow-sm" onClick={() => { setFileName(''); setOnedriveId(''); setOnedriveDriveId(null); }}>
+                            ✕ Remove File
                          </button>
                       </div>
                    ) : (
-                      <div className="p-4 bg-light border border-dashed rounded text-center text-muted">
-                        No document selected. Please paste a link to choose a file.
+                      <div className="p-5 bg-white border border-dashed rounded-4 text-center text-muted" style={{borderWidth: '2px'}}>
+                        <span className="fs-1 d-block mb-2 opacity-50">📥</span>
+                        <p className="mb-0 fw-medium fs-5 text-secondary">No Document Attached</p>
+                        <small>Please select a local synced file or paste a secure link above.</small>
                       </div>
                    )}
-                </div>
-                {/* Optional Custom File Name input could go here if they still wanted to rename it, but it's cleaner without it unless required.
-                    The requirement was to remove customerID from the form, which wasn't in the form. But removing OneDrive ID input makes it better. */}
+
                 {fileName && (
-                   <div className="col-md-12 mt-3">
-                     <label className="form-label fw-medium text-dark">Confirm/Edit File Name</label>
-                     <input type="text" className="form-control" value={fileName} onChange={(e) => setFileName(e.target.value)} />
+                   <div className="mt-4 p-4 bg-light border rounded-4">
+                     <label className="form-label fw-bold text-dark mb-2">Display Title <span className="text-muted fw-normal ms-1">(Visible to client in email)</span></label>
+                     <input type="text" className="form-control form-control-lg shadow-sm" value={fileName} onChange={(e) => setFileName(e.target.value)} />
                    </div>
                 )}
               </div>
 
-              <div className="d-grid mt-4">
-                <button type="submit" disabled={loading || !onedriveId} className="btn btn-primary btn-lg fw-bold shadow-sm">
+              <div className="d-grid mt-5 pt-4 border-top">
+                <button type="submit" disabled={loading || !onedriveId} className="btn btn-success btn-lg py-3 fs-5 fw-bold shadow-sm d-flex justify-content-center align-items-center gap-2 rounded-3">
                   {loading ? (
-                    <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generating & Preparing Draft...</>
-                  ) : 'Generate & Email Draft'}
+                    <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Initializing Secure Session...</>
+                  ) : <>✉️ Generate & Email Secure Draft</>}
                 </button>
               </div>
             </form>
