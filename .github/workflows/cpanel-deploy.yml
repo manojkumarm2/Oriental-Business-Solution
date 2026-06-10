@@ -39,41 +39,41 @@ jobs:
           port: 21
           timeout: 60000
 
-  deploy-backend:
-    name: 🐍 Deploy Python API & Restart Server
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+  # deploy-backend:
+  #   name: 🐍 Deploy Python API & Restart Server
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v4
 
-      - name: Sync API Folder via FTPS
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          # 1. Tells GitHub to ONLY grab files inside your local 'api' folder
-          local-dir: ./api/
-          # 2. Lands them directly inside your running Python directory
-          server-dir: orientalbiz_api/
-          dangerous-clean-slate: false
-          protocol: ftps
-          port: 21
-          timeout: 60000
+  #     - name: Sync API Folder via FTPS
+  #       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+  #       with:
+  #         server: ${{ secrets.FTP_SERVER }}
+  #         username: ${{ secrets.FTP_USERNAME }}
+  #         password: ${{ secrets.FTP_PASSWORD }}
+  #         # 1. Tells GitHub to ONLY grab files inside your local 'api' folder
+  #         local-dir: ./api/
+  #         # 2. Lands them directly inside your running Python directory
+  #         server-dir: orientalbiz_api/
+  #         dangerous-clean-slate: false
+  #         protocol: ftps
+  #         port: 21
+  #         timeout: 60000
 
-      - name: Create local tmp directory for restart signal
-        run: |
-          mkdir -p tmp
-          # 🎯 FIX: Injecting the unique GitHub run ID forces the file content to change every deployment
-          echo "${{ github.run_id }}-${{ github.run_number }}" > tmp/restart.txt
-      - name: Force Python App Restart via FTP File Touch
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./tmp/
-          server-dir: orientalbiz_api/tmp/
-          dangerous-clean-slate: false
-          protocol: ftps
-          port: 21
+  #     - name: Create local tmp directory for restart signal
+  #       run: |
+  #         mkdir -p tmp
+  #         # 🎯 FIX: Injecting the unique GitHub run ID forces the file content to change every deployment
+  #         echo "${{ github.run_id }}-${{ github.run_number }}" > tmp/restart.txt
+  #     - name: Force Python App Restart via FTP File Touch
+  #       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+  #       with:
+  #         server: ${{ secrets.FTP_SERVER }}
+  #         username: ${{ secrets.FTP_USERNAME }}
+  #         password: ${{ secrets.FTP_PASSWORD }}
+  #         local-dir: ./tmp/
+  #         server-dir: orientalbiz_api/tmp/
+  #         dangerous-clean-slate: false
+  #         protocol: ftps
+  #         port: 21

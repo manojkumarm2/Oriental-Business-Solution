@@ -38,7 +38,7 @@ const Navbar = () => {
         {
             id: 8,
             title: "Login",
-            path: "/customerData"
+            path: "/myapp-landing"
         },
     ];
 

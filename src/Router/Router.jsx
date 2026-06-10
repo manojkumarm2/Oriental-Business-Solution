@@ -19,6 +19,14 @@ import FaxDashboard from '../components/Fax/FaxDashboard';
 import PublicSendFaxPage from '../Pages/PublicSendFaxPage';
 import ScrollToTop from '../components/Common/ScrollToTop';
 
+const RedirectExternal = ({ to }) => {
+    useEffect(() => {
+        const url = `https://myapp.orientalbiz.ca/${to}`;
+        window.location.replace(url);
+    }, [to]);
+    return null;
+};
+
 const Router = () => {
     return (
         <>
@@ -31,14 +39,14 @@ const Router = () => {
                     <Route path='/servicedetails/:id' element={<ServiceDetailsPages />} />
                     <Route path='/contact' element={<ContactPage />} />
                     <Route path='/free-tax-clinic-form' element={<FtcfPage />} />
-                    <Route path='/customerData' element={<PersonalTaxDataPage />} />
-                    <Route path='/cvitp' element={<CvitpPage />} />
-                    <Route path='/corporateData' element={<CorporateTaxDataPage />} />
-                    <Route path='/esign-request' element={<ESignRequestPage />} />
-                    <Route path='/review-tax/:token' element={<CustomerTaxPortalPage />} />
-                    <Route path='/send-fax/:token' element={<PublicSendFaxPage />} />
-                    <Route path='/send-fax' element={<FaxPage />} />
-                    <Route path='/fax-dashboard' element={<FaxDashboard />} />
+                    <Route path='/myapp-landing' element={<RedirectExternal to="/landing"/>} />
+                    <Route path='/cvitp' element={<RedirectExternal to="/cvitp" />} />
+                    <Route path='/corporateData' element={<RedirectExternal to="/corporateData" />} />
+                    <Route path='/esign-request' element={<RedirectExternal to="/esign-request" />} />
+                    <Route path='/review-tax/:token' element={<RedirectExternal to="/review-tax/:token" />} />
+                    <Route path='/send-fax/:token' element={<RedirectExternal to="/send-fax/:token" />} />
+                    <Route path='/send-fax' element={<RedirectExternal to="/send-fax" />} />
+                    <Route path='/fax-dashboard' element={<RedirectExternal to="/fax-dashboard" />} />
                     <Route path='/blog' element={<BlogPage />} />
                     <Route path='/faq' element={<FaqPage />} />
                     <Route path='/blogdetails/:id' element={<BlogDetails />} />
