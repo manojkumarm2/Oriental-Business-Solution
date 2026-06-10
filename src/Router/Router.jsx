@@ -21,7 +21,7 @@ import ScrollToTop from '../components/Common/ScrollToTop';
 
 const RedirectExternal = ({ to }) => {
     useEffect(() => {
-        const url = `https://myapp.orientalbiz.ca/${to}`;
+        const url = `https://myapp.orientalbiz.ca${to}`;
         window.location.replace(url);
     }, [to]);
     return null;
@@ -39,6 +39,7 @@ const Router = () => {
                     <Route path='/servicedetails/:id' element={<ServiceDetailsPages />} />
                     <Route path='/contact' element={<ContactPage />} />
                     <Route path='/free-tax-clinic-form' element={<FtcfPage />} />
+                    <Route path='/customerData' element={<RedirectExternal to="/landing"/>} />
                     <Route path='/myapp-landing' element={<RedirectExternal to="/landing"/>} />
                     <Route path='/cvitp' element={<RedirectExternal to="/cvitp" />} />
                     <Route path='/corporateData' element={<RedirectExternal to="/corporateData" />} />
