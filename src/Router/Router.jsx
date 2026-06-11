@@ -8,15 +8,7 @@ import BlogPage from '../Pages/BlogPage';
 import FaqPage from '../Pages/FaqPage';
 import ServiceDetailsPages from '../Pages/ServiceDetailsPages';
 import BlogDetails from "../components/BlogDetails/BlogDetails";
-import CvitpPage from '../Pages/CvitpPage';
 import FtcfPage from '../Pages/FtcfPage';
-import PersonalTaxDataPage from '../Pages/PersonalTaxDataPage';
-import CorporateTaxDataPage from '../Pages/CorporateTaxDataPage';
-import ESignRequestPage from '../Pages/ESignRequestPage';
-import CustomerTaxPortalPage from '../Pages/CustomerTaxPortalPage';
-import FaxPage from '../Pages/FaxPage';
-import FaxDashboard from '../components/Fax/FaxDashboard';
-import PublicSendFaxPage from '../Pages/PublicSendFaxPage';
 import ScrollToTop from '../components/Common/ScrollToTop';
 
 const RedirectExternal = ({ to }) => {
